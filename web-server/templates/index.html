@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YTMD 點歌系統</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #0f0f0f;
+            color: #fff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1, h3 {
+            color: #e74c3c;
+        }
+        .section {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+        #queue {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #queue li {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+        }
+        #queue li:last-child {
+            border-bottom: none;
+        }
+        .queue-number {
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #q {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #222;
+            color: #fff;
+            font-size: 16px;
+        }
+        #q:focus {
+            outline: none;
+            border-color: #e74c3c;
+        }
+        .search-btn {
+            padding: 12px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .search-btn:hover {
+            background: #c0392b;
+        }
+        #results {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #results li {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #results li:hover {
+            background-color: #2a2a2a;
+        }
+        #results li:last-child {
+            border-bottom: none;
+        }
+        .song-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        .song-info {
+            color: #aaa;
+            font-size: 14px;
+        }
+        .loading {
+            text-align: center;
+            color: #aaa;
+            padding: 20px;
+        }
+        .error {
+            color: #e74c3c;
+            background: #2d1b1b;
+            border: 1px solid #e74c3c;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #4caf50;
+            background: #1b2d1b;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 40px 20px;
+        }
+        #queue li.current-playing {
+            background: rgba(74, 222, 128, 0.1);
+            border-left: 3px solid #4ade80;
+        }
+        .play-status {
+            color: #4ade80;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .credits {
+            margin-top: 40px;
+            padding: 15px;
+            background: #111;
+            border-radius: 6px;
+            border: 1px solid #333;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .credits a {
+            color: #e74c3c;
+            text-decoration: none;
+        }
+        .credits a:hover {
+            text-decoration: underline;
+        }
+        .credits .divider {
+            margin: 0 8px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YTMD 點歌系統</h1>
+        
+        <div class="section">
+            <h3>目前佇列</h3>
+            <ul id="queue">
+                <li class="loading">載入中...</li>
+            </ul>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #333; margin: 30px 0;">
+
+        <div class="section">
+            <h3>搜尋歌曲</h3>
+            <div class="search-container">
+                <input id="q" type="text" placeholder="輸入歌手、歌名或關鍵字..." autocomplete="off">
+                <button class="search-btn" onclick="performSearch()">搜尋</button>
+            </div>
+            <div id="search-status"></div>
+            <ul id="results"></ul>
+        </div>
+        
+        <div class="credits">
+            基於 <a href="https://github.com/th-ch/youtube-music" target="_blank">YouTube Music Desktop App</a> 開發
+            <span class="divider">•</span>
+            點歌系統由 <strong>CBC</strong> 修改
+            <span class="divider">•</span>
+            <a href="https://github.com/CBC0210/YTMD_BC" target="_blank">查看原始碼</a>
+        </div>
+    </div>
+
+    <script src="/static/main.js"></script>
+</body>
+</html>

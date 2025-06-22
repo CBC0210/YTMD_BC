@@ -1,0 +1,8 @@
+#ext-side-info{
+  width:260px;display:flex;flex-direction:column;gap:8px;padding-left:8px
+}
+#ext-side-info .card{
+  border:1px solid #444;border-radius:8px;padding:8px;
+  background:#1e1e1e;color:#eee;font-size:14px
+}
+#ext-side-info canvas{width:100%;height:auto}

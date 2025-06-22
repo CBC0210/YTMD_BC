@@ -15,3 +15,17 @@ electron-builder.yml
 .vite-inspect
 
 .DS_Store
+
+# YTMD CBC Edition specific
+web-server/.venv/
+web-server/__pycache__/
+web-server/*.log
+*.pyc
+ytmd-web-qr.png
+releases/
+/tmp/ytmd-*.pid
+
+# Debug and test files
+debug-*.js
+*-test.html
+test-*.py

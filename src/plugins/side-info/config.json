@@ -1,0 +1,8 @@
+{
+  "serverUrl": "http://localhost:8080",
+  "fallbackUrl": "http://192.168.1.100:8080",
+  "autoDetectIp": true,
+  "showQrCode": true,
+  "customInstructions": true,
+  "instructionsFile": "../config/instructions.txt"
+}
