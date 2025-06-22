@@ -120,6 +120,7 @@ echo "  • YTMD 核心檔案"
 cp package.json "${RELEASE_DIR}/"
 cp -r src/ "${RELEASE_DIR}/"
 cp -r assets/ "${RELEASE_DIR}/" 2>/dev/null || true
+cp -r vite-plugins/ "${RELEASE_DIR}/"
 cp electron.vite.config.mts "${RELEASE_DIR}/"
 cp tsconfig.json "${RELEASE_DIR}/"
 cp .npmrc "${RELEASE_DIR}/" 2>/dev/null || true

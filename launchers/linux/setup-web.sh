@@ -95,10 +95,10 @@ elif [ -f "$PROJECT_ROOT/package.json" ]; then
         echo "正在安裝 Node.js 依賴..."
         npm install
         echo "正在編譯 YTMD..."
-        npm run build:linux
+        npm run dist:linux
         echo -e "${GREEN}✅ YTMD 編譯完成${NC}"
     else
-        echo -e "${YELLOW}⚠️  您可以稍後手動編譯：npm run build:linux${NC}"
+        echo -e "${YELLOW}⚠️  您可以稍後手動編譯：npm run dist:linux${NC}"
     fi
 else
     echo -e "${RED}❌ 這似乎不是有效的 YTMD 專案目錄${NC}"
