@@ -76,7 +76,8 @@ echo -e "${GREEN}✅ Python 套件安裝完成${NC}"
 # 設置腳本執行權限
 echo -e "${BLUE}🔑 設置腳本執行權限...${NC}"
 cd "$PROJECT_ROOT/launchers"
-chmod +x *.sh
+chmod +x linux/*.sh
+chmod +x windows/*.bat
 chmod +x utils/*.py
 echo -e "${GREEN}✅ 執行權限設置完成${NC}"
 
