@@ -5,16 +5,16 @@ echo "🎵 正在啟動 YTMD..."
 
 # 設置工作目錄
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 cd "$PROJECT_ROOT"
 
 # 檢查 YTMD 可執行檔
 YTMD_EXEC=""
 
-if [ -f "./dist/linux-unpacked/youtube-music" ]; then
-    YTMD_EXEC="./dist/linux-unpacked/youtube-music"
-elif [ -f "./out/YouTube Music-linux-x64/youtube-music" ]; then
-    YTMD_EXEC="./out/YouTube Music-linux-x64/youtube-music"
+if [ -f "$PROJECT_ROOT/dist/linux-unpacked/youtube-music" ]; then
+    YTMD_EXEC="$PROJECT_ROOT/dist/linux-unpacked/youtube-music"
+elif [ -f "$PROJECT_ROOT/out/YouTube Music-linux-x64/youtube-music" ]; then
+    YTMD_EXEC="$PROJECT_ROOT/out/YouTube Music-linux-x64/youtube-music"
 elif command -v youtube-music &> /dev/null; then
     YTMD_EXEC="youtube-music"
 else

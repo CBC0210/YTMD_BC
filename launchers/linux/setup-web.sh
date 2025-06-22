@@ -15,7 +15,7 @@ echo "=========================================="
 
 # 設置工作目錄
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 cd "$PROJECT_ROOT"
 
 # 檢查 Python 環境
@@ -46,7 +46,7 @@ echo -e "${GREEN}✅ Node.js 版本：$NODE_VERSION${NC}"
 
 # 建立 Python 虛擬環境
 echo -e "${BLUE}🏗️  建立 Python 虛擬環境...${NC}"
-cd web-server
+cd "$PROJECT_ROOT/web-server"
 
 if [ -d ".venv" ]; then
     echo -e "${YELLOW}⚠️  虛擬環境已存在，正在重新建立...${NC}"
@@ -84,9 +84,9 @@ echo -e "${GREEN}✅ 執行權限設置完成${NC}"
 echo -e "${BLUE}🎵 檢查 YTMD 編譯狀態...${NC}"
 cd "$PROJECT_ROOT"
 
-if [ -f "./dist/linux-unpacked/youtube-music" ]; then
+if [ -f "$PROJECT_ROOT/dist/linux-unpacked/youtube-music" ]; then
     echo -e "${GREEN}✅ YTMD 已編譯完成${NC}"
-elif [ -f "./package.json" ]; then
+elif [ -f "$PROJECT_ROOT/package.json" ]; then
     echo -e "${YELLOW}⚠️  YTMD 尚未編譯${NC}"
     echo "是否要現在編譯 YTMD？(這可能需要幾分鐘) [y/N]"
     read -r response
@@ -105,7 +105,7 @@ fi
 
 # 測試服務
 echo -e "${BLUE}🧪 測試服務連接...${NC}"
-cd web-server
+cd "$PROJECT_ROOT/web-server"
 
 # 簡單測試 Flask 能否啟動
 echo "測試 Flask 服務器..."

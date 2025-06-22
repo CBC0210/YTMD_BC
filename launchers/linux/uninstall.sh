@@ -13,7 +13,7 @@ echo "=========================================="
 
 # 設置工作目錄
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # 確認卸載
 echo -e "${YELLOW}這將移除點歌系統的所有設置，但保留 YTMD 主程式${NC}"
@@ -29,14 +29,14 @@ echo -e "${BLUE}🛑 停止所有服務...${NC}"
 cd "$PROJECT_ROOT"
 
 # 停止所有服務
-./launchers/stop-all.sh
+"$PROJECT_ROOT/launchers/linux/stop-all.sh"
 
 echo -e "${BLUE}🧹 清理設置...${NC}"
 
 # 移除 Python 虛擬環境
-if [ -d "./web-server/.venv" ]; then
+if [ -d "$PROJECT_ROOT/web-server/.venv" ]; then
     echo "移除 Python 虛擬環境..."
-    rm -rf ./web-server/.venv
+    rm -rf "$PROJECT_ROOT/web-server/.venv"
     echo -e "${GREEN}✅ 虛擬環境已移除${NC}"
 fi
 
@@ -65,24 +65,24 @@ echo -e "${YELLOW}移除配置檔案？[y/N]${NC}"
 read -r response
 
 if [[ "$response" =~ ^[Yy]$ ]]; then
-    if [ -f "./config/instructions.txt" ]; then
-        rm -f ./config/instructions.txt
+    if [ -f "$PROJECT_ROOT/config/instructions.txt" ]; then
+        rm -f "$PROJECT_ROOT/config/instructions.txt"
         echo "✅ 自訂點歌說明已移除"
     fi
     
-    if [ -f "./config/web-config.json" ]; then
-        rm -f ./config/web-config.json
+    if [ -f "$PROJECT_ROOT/config/web-config.json" ]; then
+        rm -f "$PROJECT_ROOT/config/web-config.json"
         echo "✅ 網頁設置已移除"
     fi
     
-    if [ -f "./config/README-instructions.md" ]; then
-        rm -f ./config/README-instructions.md
+    if [ -f "$PROJECT_ROOT/config/README-instructions.md" ]; then
+        rm -f "$PROJECT_ROOT/config/README-instructions.md"
         echo "✅ 說明文檔已移除"
     fi
     
     # 如果 config 目錄為空，也移除它
-    if [ -d "./config" ] && [ -z "$(ls -A ./config)" ]; then
-        rmdir ./config
+    if [ -d "$PROJECT_ROOT/config" ] && [ -z "$(ls -A "$PROJECT_ROOT/config")" ]; then
+        rmdir "$PROJECT_ROOT/config"
         echo "✅ 空的 config 目錄已移除"
     fi
 else
@@ -98,7 +98,7 @@ echo -e "${YELLOW}移除啟動器目錄？[y/N]${NC}"
 read -r response
 
 if [[ "$response" =~ ^[Yy]$ ]]; then
-    rm -rf ./launchers
+    rm -rf "$PROJECT_ROOT/launchers"
     echo -e "${GREEN}✅ 啟動器目錄已移除${NC}"
 else
     echo "ℹ️  保留啟動器目錄"

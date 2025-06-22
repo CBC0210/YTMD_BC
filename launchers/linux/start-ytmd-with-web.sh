@@ -40,7 +40,7 @@ echo -e "${BLUE}🎶 正在啟動 YTMD + 點歌系統...${NC}"
 
 # 設置工作目錄
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 cd "$PROJECT_ROOT"
 
 # 檢查 Python 環境
@@ -53,7 +53,7 @@ fi
 
 # 檢查並創建虛擬環境
 echo -e "${BLUE}📦 設置 Python 虛擬環境...${NC}"
-cd web-server
+cd "$PROJECT_ROOT/web-server"
 
 if [ ! -d ".venv" ]; then
     echo "建立虛擬環境..."
@@ -70,14 +70,14 @@ pip install -q qrcode[pil]  # QR Code 生成器
 
 # 檢測 IP 地址
 echo -e "${BLUE}🌐 檢測網路配置...${NC}"
-LOCAL_IP=$(python3 ../launchers/utils/ip-detector.py)
+LOCAL_IP=$(python3 "$PROJECT_ROOT/launchers/utils/ip-detector.py")
 WEB_URL="http://${LOCAL_IP}:8080"
 
 echo -e "${GREEN}📱 點歌系統網址：${WEB_URL}${NC}"
 
 # 生成 QR Code
 echo -e "${BLUE}📱 生成 QR Code...${NC}"
-python3 ../launchers/utils/qr-generator.py "$WEB_URL"
+python3 "$PROJECT_ROOT/launchers/utils/qr-generator.py" "$WEB_URL"
 
 # 啟動 Web Server (背景執行)
 echo -e "${BLUE}🚀 啟動 Web 服務器...${NC}"
@@ -90,7 +90,7 @@ echo -e "${BLUE}⏳ 等待服務啟動...${NC}"
 sleep 3
 
 # 檢查服務狀態
-if python3 ../launchers/utils/web-status.py web; then
+if python3 "$PROJECT_ROOT/launchers/utils/web-status.py" web; then
     echo -e "${GREEN}✅ Web 服務器啟動成功${NC}"
 else
     echo -e "${RED}❌ Web 服務器啟動失敗${NC}"
@@ -103,10 +103,10 @@ echo -e "${BLUE}🎵 檢查 YTMD...${NC}"
 cd "$PROJECT_ROOT"
 
 YTMD_EXEC=""
-if [ -f "./dist/linux-unpacked/youtube-music" ]; then
-    YTMD_EXEC="./dist/linux-unpacked/youtube-music"
-elif [ -f "./out/YouTube Music-linux-x64/youtube-music" ]; then
-    YTMD_EXEC="./out/YouTube Music-linux-x64/youtube-music"
+if [ -f "$PROJECT_ROOT/dist/linux-unpacked/youtube-music" ]; then
+    YTMD_EXEC="$PROJECT_ROOT/dist/linux-unpacked/youtube-music"
+elif [ -f "$PROJECT_ROOT/out/YouTube Music-linux-x64/youtube-music" ]; then
+    YTMD_EXEC="$PROJECT_ROOT/out/YouTube Music-linux-x64/youtube-music"
 elif command -v youtube-music &> /dev/null; then
     YTMD_EXEC="youtube-music"
 else

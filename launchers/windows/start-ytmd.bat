@@ -1,6 +1,9 @@
 @echo off
 chcp 65001 >nul
 
+:: 設定工作目錄到專案根目錄
+cd /d "%~dp0..\.."
+
 echo 🎵 正在啟動 YTMD Desktop App...
 
 :: 檢查 YTMD 可執行檔

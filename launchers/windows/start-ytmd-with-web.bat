@@ -2,6 +2,9 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+:: 設定工作目錄到專案根目錄
+cd /d "%~dp0..\.."
+
 :: 信號處理 - Windows 版本相對簡單
 :: 設置清理標記
 set "cleanup_needed=false"
