@@ -19,11 +19,23 @@ def check_ytmd_api(host="localhost", port=26538, timeout=5):
 def check_web_server(host="localhost", port=8080, timeout=5):
     """檢查 Flask Web 服務器是否可用"""
     try:
-        url = f"http://{host}:{port}/queue"
+        # 先檢查根路徑，這個不依賴 YTMD API
+        url = f"http://{host}:{port}/"
         response = requests.get(url, timeout=timeout)
         return response.status_code == 200
-    except:
+    except requests.exceptions.ConnectionError:
         return False
+    except:
+        # 如果根路徑不可用，嘗試檢查任何端點
+        try:
+            url = f"http://{host}:{port}/queue"
+            response = requests.get(url, timeout=timeout)
+            # 即使返回 500 也表示服務器在運行
+            return response.status_code in [200, 500]
+        except requests.exceptions.ConnectionError:
+            return False
+        except:
+            return False
 
 def wait_for_service(check_func, service_name, max_wait=30):
     """等待服務啟動"""

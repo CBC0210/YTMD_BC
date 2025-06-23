@@ -3,7 +3,17 @@ import style from './style.css?inline';
 import QRCode from 'qrcode';
 import cfg from './config.json';
 
-export default createPlugin({
+export default createPlugin<
+  unknown,
+  unknown,
+  {
+    observer: MutationObserver | null;
+    timeoutId: NodeJS.Timeout | null;
+    initializeWhenReady(): void;
+    injectSideInfo(): Promise<void>;
+    stop(): void;
+  }
+>({
   name: () => 'YTMD 點歌系統',
   description: () => '顯示點歌系統教學與 QR Code，方便手機掃描點歌',
   restartNeeded: false,
@@ -11,16 +21,90 @@ export default createPlugin({
   config: { enabled: true },
 
   renderer: {
+    observer: null,
+    timeoutId: null,
+    
     async start() {
       console.log('[Side Info] Plugin starting...');
       console.log('[Side Info] Document ready state:', document.readyState);
       console.log('[Side Info] Current URL:', window.location.href);
       
-      // 添加一個延遲確保頁面完全載入
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('[Side Info] After 2s delay, starting plugin injection...');
+      // 強制顯示插件信息到頁面標題，確認插件有運行
+      document.title = document.title + ' [Side Info Active]';
       
-      // 先嘗試直接添加到 body
+      // 使用更可靠的初始化方式
+      this.initializeWhenReady();
+    },
+
+    initializeWhenReady() {
+      const tryInject = () => {
+        if (document.body && document.readyState === 'complete') {
+          this.injectSideInfo();
+        } else {
+          // 如果還沒準備好，繼續等待
+          setTimeout(tryInject, 100);
+        }
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryInject);
+        window.addEventListener('load', tryInject);
+      } else {
+        tryInject();
+      }
+
+      // 設置 DOM 變化監聽器，以應對 SPA 路由變化
+      if (!this.observer) {
+        this.observer = new MutationObserver((mutations) => {
+          // 只在真正需要時才重新注入
+          let shouldReinject = false;
+          
+          for (const mutation of mutations) {
+            // 檢查是否我們的元素被移除了
+            for (const removedNode of mutation.removedNodes) {
+              if (removedNode instanceof Element && 
+                  (removedNode.id === 'ext-side-info' || 
+                   removedNode.querySelector?.('#ext-side-info'))) {
+                shouldReinject = true;
+                break;
+              }
+            }
+            
+            // 檢查是否頁面結構發生重大變化（如路由切換）
+            if (mutation.type === 'childList' && 
+                mutation.target === document.body &&
+                mutation.addedNodes.length > 0) {
+              // 檢查是否是路由變化導致的主要內容更新
+              for (const addedNode of mutation.addedNodes) {
+                if (addedNode instanceof Element && 
+                    addedNode.querySelector?.('[role="main"], #main, main')) {
+                  shouldReinject = true;
+                  break;
+                }
+              }
+            }
+            
+            if (shouldReinject) break;
+          }
+          
+          if (shouldReinject && !document.getElementById('ext-side-info')) {
+            // 延遲執行以避免頻繁觸發
+            if (this.timeoutId) {
+              clearTimeout(this.timeoutId);
+            }
+            this.timeoutId = setTimeout(() => this.injectSideInfo(), 1000);
+          }
+        });
+        
+        this.observer.observe(document.body || document.documentElement, {
+          childList: true,
+          subtree: false // 只監聽直接子元素變化，避免過度觸發
+        });
+      }
+    },
+
+    async injectSideInfo() {
+      // 先移除現有元素
       const existingSide = document.getElementById('ext-side-info');
       if (existingSide) {
         existingSide.remove();
@@ -62,21 +146,27 @@ export default createPlugin({
       
       // 嘗試獲取自定義說明文字
       try {
+        console.log('[Side Info] 嘗試獲取自定義說明文字...');
         const response = await fetch('http://localhost:8080/instructions', { 
-          signal: AbortSignal.timeout(3000)
+          signal: AbortSignal.timeout(3000),
+          mode: 'cors'
         });
         if (response.ok) {
           const data = await response.json() as { instructions?: string };
+          console.log('[Side Info] 獲取到自定義說明:', data);
           if (data.instructions) {
             // 將第一行作為標題處理
             const lines = data.instructions.split('\n');
             const title = lines[0].includes('✦') ? lines[0] : `✦ ${lines[0]}`;
-            const content = lines.slice(1).join('\n');
-            msg.innerHTML = `<b style="color: #e74c3c;">${title}</b>${content}`;
+            const content = lines.slice(1).join('<br/>');
+            msg.innerHTML = `<b style="color: #e74c3c;">${title}</b><br/>${content}`;
+            console.log('[Side Info] 使用自定義說明文字');
           }
+        } else {
+          console.log('[Side Info] 說明文字 API 返回錯誤:', response.status);
         }
       } catch (error) {
-        console.log('[Side Info] Using default instructions, custom fetch failed:', error);
+        console.log('[Side Info] 無法獲取自定義說明文字，使用默認:', error);
       }
       
       side.appendChild(msg);
@@ -108,20 +198,73 @@ export default createPlugin({
       try {
         let url = cfg.serverUrl || 'http://localhost:8080';
         
-        // 如果啟用自動檢測 IP，嘗試獲取本機 IP
+        // 如果啟用自動檢測 IP，嘗試從服務器獲取配置
         if (cfg.autoDetectIp) {
           try {
-            // 嘗試從多個可能的本機 IP 中找到可用的
-            const response = await fetch('http://localhost:8080/queue', { 
+            console.log('[Side Info] 嘗試獲取服務器配置...');
+            const configResponse = await fetch('http://localhost:8080/config', { 
               method: 'GET',
-              signal: AbortSignal.timeout(2000)
+              signal: AbortSignal.timeout(3000),
+              mode: 'cors'
             });
-            if (response.ok) {
-              url = 'http://localhost:8080';
+            
+            if (configResponse.ok) {
+              const config = await configResponse.json() as { serverUrl?: string; serverIp?: string };
+              if (config.serverUrl) {
+                url = config.serverUrl;
+                console.log('[Side Info] 使用服務器配置的 URL:', url);
+              } else if (config.serverIp) {
+                url = `http://${config.serverIp}:8080`;
+                console.log('[Side Info] 使用檢測到的 IP 構建 URL:', url);
+              }
+            } else {
+              console.log('[Side Info] 配置端點回應錯誤:', configResponse.status);
+              throw new Error(`Config endpoint returned ${configResponse.status}`);
             }
-          } catch {
-            // 如果 localhost 不可用，使用配置的備用 URL
-            url = cfg.fallbackUrl || cfg.serverUrl || 'http://192.168.1.100:8080';
+          } catch (error) {
+            console.log('[Side Info] 無法獲取服務器配置，嘗試直接檢測:', error);
+            // 備用方案：直接檢查服務器是否在 localhost 可用
+            try {
+              const response = await fetch('http://localhost:8080/', { 
+                method: 'GET',
+                signal: AbortSignal.timeout(2000),
+                mode: 'cors'
+              });
+              if (response.ok) {
+                url = 'http://localhost:8080';
+                console.log('[Side Info] 服務器在 localhost 可用');
+              } else {
+                throw new Error('Localhost not accessible');
+              }
+            } catch {
+              console.log('[Side Info] localhost 不可用，使用備用 IP');
+              // 嘗試使用常見的本地網段 IP
+              const commonIPs = ['192.168.1.100', '192.168.68.112', '192.168.0.100'];
+              let foundIP = null;
+              
+              for (const ip of commonIPs) {
+                try {
+                  const testUrl = `http://${ip}:8080`;
+                  await fetch(`${testUrl}/`, { 
+                    method: 'HEAD',
+                    signal: AbortSignal.timeout(1000),
+                    mode: 'no-cors'
+                  });
+                  foundIP = ip;
+                  break;
+                } catch {
+                  continue;
+                }
+              }
+              
+              if (foundIP) {
+                url = `http://${foundIP}:8080`;
+                console.log('[Side Info] 找到可用的服務器 IP:', foundIP);
+              } else {
+                url = cfg.fallbackUrl || 'http://192.168.1.100:8080';
+                console.log('[Side Info] 使用最終備用 URL:', url);
+              }
+            }
           }
         }
         
@@ -145,11 +288,24 @@ export default createPlugin({
     },
     
     stop() {
-      const side = document.getElementById('ext-side-info');
-      if (side) {
-        side.remove();
-        console.log('[Side Info] Plugin stopped and removed');
+      // 清理資源
+      if (this.observer) {
+        this.observer.disconnect();
+        this.observer = null;
       }
+      
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+      
+      // 移除 DOM 元素
+      const existingSide = document.getElementById('ext-side-info');
+      if (existingSide) {
+        existingSide.remove();
+      }
+      
+      console.log('[Side Info] Plugin stopped and cleaned up');
     }
   }
 });

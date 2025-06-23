@@ -169,9 +169,13 @@ if (config.get('options.proxy')) {
 }
 
 // Adds debug features like hotkeys for triggering dev tools and reload
-electronDebug({
-  showDevTools: false, // Disable automatic devTools on new window
-});
+// Only enable in development mode
+const isDev = !app.isPackaged || process.env.NODE_ENV === 'development';
+if (isDev) {
+  electronDebug({
+    showDevTools: false, // Disable automatic devTools on new window
+  });
+}
 
 let icon = 'assets/youtube-music.png';
 if (process.platform === 'win32') {

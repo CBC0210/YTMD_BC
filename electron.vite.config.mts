@@ -65,8 +65,8 @@ export default defineConfig({
       ...commonConfig,
       build: {
         ...commonConfig.build,
-        minify: true,
-        cssMinify: true,
+        minify: false,        // 暫時禁用壓縮測試插件問題
+        cssMinify: false,
       },
     };
   }),
@@ -113,8 +113,8 @@ export default defineConfig({
       ...commonConfig,
       build: {
         ...commonConfig.build,
-        minify: true,
-        cssMinify: true,
+        minify: false,        // 暫時禁用壓縮測試插件問題
+        cssMinify: false,
       },
     };
   }),
@@ -169,8 +169,8 @@ export default defineConfig({
       ...commonConfig,
       build: {
         ...commonConfig.build,
-        minify: true,
-        cssMinify: true,
+        minify: false,        // 暫時禁用壓縮測試插件問題
+        cssMinify: false,
       },
     };
   }),
