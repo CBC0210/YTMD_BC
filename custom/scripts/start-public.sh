@@ -19,7 +19,19 @@ SKIP_BUILD=${SKIP_BUILD:-0}
 DEV_MODE=${DEV_MODE:-0}
 BACKEND_ONLY=${BACKEND_ONLY:-0}
 PUBLIC_LINKS_PATH=${PUBLIC_LINKS_PATH:-"$WS_DIR/app/public_links.json"}
-QR=${QR:-0}
+QR=${QR:-1}
+# 當啟用 ngrok 時只為 public URL 產生 QR (可用 QR_PUBLIC_ONLY=0 覆寫)
+QR_PUBLIC_ONLY=${QR_PUBLIC_ONLY:-}
+if [[ -z "$QR_PUBLIC_ONLY" ]]; then
+	if [[ $ENABLE_NGROK = 1 ]]; then QR_PUBLIC_ONLY=1; else QR_PUBLIC_ONLY=0; fi
+fi
+# 等待 public URL 最長秒數 (僅在 QR_PUBLIC_ONLY=1 且 ENABLE_NGROK=1 時用)
+QR_TIMEOUT_SEC=${QR_TIMEOUT_SEC:-30}
+# 強制使用 python 版 QR（忽略 qrencode），ngrok 模式預設啟用，可用 QR_PYTHON_ONLY=0 關閉
+QR_PYTHON_ONLY=${QR_PYTHON_ONLY:-}
+if [[ -z "$QR_PYTHON_ONLY" ]]; then
+	if [[ $ENABLE_NGROK = 1 ]]; then QR_PYTHON_ONLY=1; else QR_PYTHON_ONLY=0; fi
+fi
 LOG_MAX_KB=${LOG_MAX_KB:-0}
 QUIET=${QUIET:-0}
 NGROK_LABEL=${NGROK_LABEL:-}
@@ -50,15 +62,18 @@ qr_print() {
 	[[ $QR = 1 ]] || return 0
 	echo ""
 	info "QR for: $u"
-	# 優先使用 qrencode (終端彩色)
-	if command -v qrencode >/dev/null 2>&1; then
-		qrencode -t ANSIUTF8 "$u" || true
-	# 其次使用現有 python qr-generator 產生 ASCII + PNG
-	elif [[ -f "$CUSTOM_DIR/launchers/utils/qr-generator.py" ]]; then
+	# 若強制 python 或未找到 qrencode 則使用 python 版 (可存 PNG)
+	if { [[ $QR_PYTHON_ONLY = 1 ]] || ! command -v qrencode >/dev/null 2>&1; } && [[ -f "$CUSTOM_DIR/launchers/utils/qr-generator.py" ]]; then
 		PYTHONPATH="$CUSTOM_DIR/launchers/utils" python3 "$CUSTOM_DIR/launchers/utils/qr-generator.py" "$u" || echo "$u"
 	else
-		# 簡易 fallback
-		echo "$u"
+		# 優先 qrencode 彩色模式
+		if command -v qrencode >/dev/null 2>&1; then
+			qrencode -t ANSIUTF8 "$u" || true
+		elif [[ -f "$CUSTOM_DIR/launchers/utils/qr-generator.py" ]]; then
+			PYTHONPATH="$CUSTOM_DIR/launchers/utils" python3 "$CUSTOM_DIR/launchers/utils/qr-generator.py" "$u" || echo "$u"
+		else
+			echo "$u"
+		fi
 	fi
 	echo ""
 }
@@ -128,8 +143,28 @@ info "PORT=$PORT ENABLE_NGROK=$ENABLE_NGROK DEV_MODE=$DEV_MODE BACKEND_ONLY=$BAC
 start_web; start_ngrok; start_app
 
 current_public=""
-if [[ $ENABLE_NGROK = 1 ]]; then for i in {1..30}; do rotate_if_big "$NGROK_LOG" "$LOG_MAX_KB"; u=$(get_ngrok_url); [[ -n $u ]] && { current_public=$u; break; }; sleep 1; done; fi
-update_links "$current_public"; qr_print "${current_public:-http://$(local_ip):$PORT}"
+if [[ $ENABLE_NGROK = 1 ]]; then
+	# 若只想顯示 public URL 的 QR，則等待；否則若 QR_PUBLIC_ONLY=0 可先顯示本地
+	for ((i=1;i<=QR_TIMEOUT_SEC;i++)); do
+		rotate_if_big "$NGROK_LOG" "$LOG_MAX_KB"
+		u=$(get_ngrok_url)
+		if [[ -n $u ]]; then current_public=$u; break; fi
+		sleep 1
+	done
+	if [[ -z $current_public ]]; then
+		if [[ $QR_PUBLIC_ONLY = 1 ]]; then
+			warn "在 ${QR_TIMEOUT_SEC}s 內未取得 ngrok URL，將不顯示暫時 QR (稍後偵測到會再顯示)"
+		else
+			info "暫無 ngrok URL，先使用本地網址 QR"
+			qr_print "http://$(local_ip):$PORT"
+		fi
+	fi
+fi
+update_links "$current_public"
+# 僅在得到 public URL 或未要求 public-only 時輸出 QR
+if [[ -n $current_public ]]; then
+	qr_print "$current_public"
+fi
 
 loop=0; backoff=2
 while true; do
