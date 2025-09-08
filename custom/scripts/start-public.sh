@@ -103,24 +103,34 @@ if [[ -f "$WS_DIR/requirements.txt" && ! -d "$WS_DIR/.venv" ]]; then
 	info "建立 venv"; python3 -m venv "$WS_DIR/.venv"; "$WS_DIR/.venv/bin/pip" install -q --upgrade pip; "$WS_DIR/.venv/bin/pip" install -q -r "$WS_DIR/requirements.txt";
 fi
 PYTHON_BIN="$WS_DIR/.venv/bin/python"; [[ -x "$PYTHON_BIN" ]] || PYTHON_BIN=$(command -v python3)
+if [[ ! -x "$PYTHON_BIN" ]]; then
+	warn "未找到可執行的 Python (venv 未建立?) 將嘗試建立 venv"
+	if [[ -f "$WS_DIR/requirements.txt" ]]; then
+		python3 -m venv "$WS_DIR/.venv" 2>/dev/null || true
+		PYTHON_BIN="$WS_DIR/.venv/bin/python"
+	fi
+	[[ -x "$PYTHON_BIN" ]] || PYTHON_BIN=$(command -v python3 || echo python3)
+fi
+
+[[ ${PUBLIC_DEBUG:-0} = 1 ]] && info "PYTHON_BIN=$PYTHON_BIN"
 
 # 確保 qrcode 套件 (僅在需要且使用 python QR 且未安裝時安裝，可用 QR_NO_AUTO_PIP=1 禁用)
 ensure_qrcode() {
 	[[ $QR = 1 ]] || return 0
-	[[ $QR_PYTHON_ONLY = 1 ]] || { command -v qrencode >/dev/null 2>&1 || true; } || return 0
+	# 若可用 qrencode 且未強制 python 則直接返回
+	if [[ $QR_PYTHON_ONLY != 1 ]] && command -v qrencode >/dev/null 2>&1; then return 0; fi
 	[[ ${QR_NO_AUTO_PIP:-0} = 1 ]] && return 0
-	"$PYTHON_BIN" - <<'PY'
-import sys
-try:
-		import qrcode  # noqa
-except Exception:
-		sys.exit(1)
-sys.exit(0)
-PY
-	if [[ $? -ne 0 ]]; then
-		info "安裝 qrcode[pil] 以生成 QR 圖..."
-		"$WS_DIR/.venv/bin/pip" install -q qrcode[pil] || warn "qrcode 套件安裝失敗，改用純文字 URL"
+	# 確保有 pip
+	local PIP_BIN="${WS_DIR}/.venv/bin/pip"
+	[[ -x "$PIP_BIN" ]] || PIP_BIN=$(command -v pip3 || command -v pip || echo '')
+	if [[ -z "$PIP_BIN" ]]; then
+		warn "無 pip 無法自動安裝 qrcode (將使用純文字 URL)"; return 0
 	fi
+	# 檢查模組
+	"$PYTHON_BIN" -c 'import qrcode' >/dev/null 2>&1 && return 0
+	info "安裝 qrcode[pil] (自動)"
+	"$PIP_BIN" install -q qrcode[pil] || { warn "qrcode 安裝失敗"; return 0; }
+	"$PYTHON_BIN" -c 'import qrcode' >/dev/null 2>&1 || warn "qrcode 模組仍不可用"
 }
 ensure_qrcode
 
