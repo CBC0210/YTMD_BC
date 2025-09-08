@@ -46,7 +46,7 @@ echo -e "${GREEN}✅ Node.js 版本：$NODE_VERSION${NC}"
 
 # 建立 Python 虛擬環境
 echo -e "${BLUE}🏗️  建立 Python 虛擬環境...${NC}"
-cd web-server
+cd custom/web-server
 
 if [ -d ".venv" ]; then
     echo -e "${YELLOW}⚠️  虛擬環境已存在，正在重新建立...${NC}"
@@ -75,7 +75,7 @@ echo -e "${GREEN}✅ Python 套件安裝完成${NC}"
 
 # 設置腳本執行權限
 echo -e "${BLUE}🔑 設置腳本執行權限...${NC}"
-cd "$PROJECT_ROOT/launchers"
+cd "$PROJECT_ROOT/custom/launchers"
 chmod +x *.sh
 chmod +x utils/*.py
 echo -e "${GREEN}✅ 執行權限設置完成${NC}"
@@ -92,12 +92,12 @@ elif [ -f "./package.json" ]; then
     read -r response
     if [[ "$response" =~ ^[Yy]$ ]]; then
         echo "正在安裝 Node.js 依賴..."
-        npm install
-        echo "正在編譯 YTMD..."
-        npm run build:linux
+    pnpm install
+    echo "正在構建 YTMD..."
+    pnpm build
         echo -e "${GREEN}✅ YTMD 編譯完成${NC}"
     else
-        echo -e "${YELLOW}⚠️  您可以稍後手動編譯：npm run build:linux${NC}"
+    echo -e "${YELLOW}⚠️  您可以稍後手動構建：pnpm build 或打包：pnpm dist:linux${NC}"
     fi
 else
     echo -e "${RED}❌ 這似乎不是有效的 YTMD 專案目錄${NC}"

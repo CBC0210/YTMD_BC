@@ -53,7 +53,7 @@ fi
 
 # 檢查並創建虛擬環境
 echo -e "${BLUE}📦 設置 Python 虛擬環境...${NC}"
-cd "$PROJECT_ROOT/web-server"
+cd "$PROJECT_ROOT/custom/web-server"
 
 if [ ! -d ".venv" ]; then
     echo "建立虛擬環境..."
@@ -70,14 +70,14 @@ pip install -q qrcode[pil]  # QR Code 生成器
 
 # 檢測 IP 地址
 echo -e "${BLUE}🌐 檢測網路配置...${NC}"
-LOCAL_IP=$(python3 "$PROJECT_ROOT/launchers/utils/ip-detector.py")
+LOCAL_IP=$(python3 "$PROJECT_ROOT/custom/launchers/utils/ip-detector.py")
 WEB_URL="http://${LOCAL_IP}:8080"
 
 echo -e "${GREEN}📱 點歌系統網址：${WEB_URL}${NC}"
 
 # 生成 QR Code
 echo -e "${BLUE}📱 生成 QR Code...${NC}"
-python3 "$PROJECT_ROOT/launchers/utils/qr-generator.py" "$WEB_URL"
+python3 "$PROJECT_ROOT/custom/launchers/utils/qr-generator.py" "$WEB_URL"
 
 # 啟動 Web Server (背景執行)
 echo -e "${BLUE}🚀 啟動 Web 服務器...${NC}"
@@ -90,7 +90,7 @@ echo -e "${BLUE}⏳ 等待服務啟動...${NC}"
 sleep 3
 
 # 檢查服務狀態
-if python3 "$PROJECT_ROOT/launchers/utils/web-status.py" web; then
+if python3 "$PROJECT_ROOT/custom/launchers/utils/web-status.py" web; then
     echo -e "${GREEN}✅ Web 服務器啟動成功${NC}"
 else
     echo -e "${RED}❌ Web 服務器啟動失敗${NC}"
@@ -112,7 +112,7 @@ elif command -v youtube-music &> /dev/null; then
 else
     echo -e "${RED}❌ 找不到 YTMD 執行檔！${NC}"
     echo "請確認 YTMD 已正確編譯，或執行以下命令："
-    echo "  npm run build:linux"
+    echo "  pnpm dist:linux (或 pnpm build 用於開發模式)"
     exit 1
 fi
 
