@@ -1,0 +1,4 @@
+# Ignore runtime leftovers
+__pycache__/
+*.pyc
+ytmd-web-qr.png

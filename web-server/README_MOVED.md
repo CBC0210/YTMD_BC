@@ -1,2 +1,8 @@
-此目錄已遷移至 custom/web-server/
-僅保留此文件避免舊路徑引用失敗。
+此目錄原本存放 Python Web Server，現已遷移至 custom/web-server/
+
+保留此占位檔以避免舊文件或腳本引用路徑時出錯。
+
+開發請使用：
+	./custom/start-dev.sh
+
+若需完全移除殘留，可安全刪除此整個 web-server 目錄（僅影響極舊引用）。
