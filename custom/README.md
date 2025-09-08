@@ -36,6 +36,7 @@
 - QR_PUBLIC_ONLY=0       若啟用 ngrok 也先顯示本地 QR
 - QR_TIMEOUT_SEC=30      等待 public URL 秒數 (Public only 模式)
 - QR_PYTHON_ONLY=0       允許使用 qrencode (預設 ngrok=1 -> python)
+- QR_NO_AUTO_PIP=1       禁用自動安裝 qrcode[pil] (預設需要時自動安裝)
 - LOG_MAX_KB=512         超出大小自動輪替內部日誌
 - NGROK_LABEL=label      寫入 public_links.json 內的 label 欄位
 - SKIP_INSTALL=1         不自動執行 pnpm install

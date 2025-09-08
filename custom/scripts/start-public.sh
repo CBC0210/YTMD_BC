@@ -104,6 +104,26 @@ if [[ -f "$WS_DIR/requirements.txt" && ! -d "$WS_DIR/.venv" ]]; then
 fi
 PYTHON_BIN="$WS_DIR/.venv/bin/python"; [[ -x "$PYTHON_BIN" ]] || PYTHON_BIN=$(command -v python3)
 
+# 確保 qrcode 套件 (僅在需要且使用 python QR 且未安裝時安裝，可用 QR_NO_AUTO_PIP=1 禁用)
+ensure_qrcode() {
+	[[ $QR = 1 ]] || return 0
+	[[ $QR_PYTHON_ONLY = 1 ]] || { command -v qrencode >/dev/null 2>&1 || true; } || return 0
+	[[ ${QR_NO_AUTO_PIP:-0} = 1 ]] && return 0
+	"$PYTHON_BIN" - <<'PY'
+import sys
+try:
+		import qrcode  # noqa
+except Exception:
+		sys.exit(1)
+sys.exit(0)
+PY
+	if [[ $? -ne 0 ]]; then
+		info "安裝 qrcode[pil] 以生成 QR 圖..."
+		"$WS_DIR/.venv/bin/pip" install -q qrcode[pil] || warn "qrcode 套件安裝失敗，改用純文字 URL"
+	fi
+}
+ensure_qrcode
+
 start_web() {
 	pgrep -f "python.*$APP_SERVER" >/dev/null 2>&1 && { warn "後端已執行"; return; }
 	info "啟動後端 port=$PORT"; WEB_SERVER_PORT="$PORT" YTMD_API="$API_URL" nohup "$PYTHON_BIN" "$APP_SERVER" >>"$WEB_LOG" 2>&1 & echo $! > "$PID_WEB"
