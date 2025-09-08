@@ -28,3 +28,7 @@ releases/
 debug-*.js
 *-test.html
 test-*.py
+
+# Runtime generated user data (history / likes) - ignore
+custom/web-server/app/data_history.json
+custom/web-server/app/data_likes.json
