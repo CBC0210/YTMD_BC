@@ -45,11 +45,33 @@ local_ip() { hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' | grep 
 atomic_write_json() { local tmp; tmp=$(mktemp "${PUBLIC_LINKS_PATH}.tmp.XXXX"); cat > "$tmp" && mv "$tmp" "$PUBLIC_LINKS_PATH"; }
 rotate_if_big() { local f=$1 m=$2; [[ $m -gt 0 ]] || return 0; [[ -f $f ]] || return 0; local s=$(( $(stat -c%s "$f") /1024 )); [[ $s -ge $m ]] && { mv "$f" "$f.$(date +%Y%m%d%H%M%S)"; :>"$f"; info "rotate $f"; }; }
 
-qr_print() { local u=$1; [[ $QR = 1 ]] || return 0; if command -v qrencode >/dev/null 2>&1; then qrencode -t ANSIUTF8 "$u"; else echo "$u"; fi; }
+qr_print() {
+	local u=$1
+	[[ $QR = 1 ]] || return 0
+	echo ""
+	info "QR for: $u"
+	# 優先使用 qrencode (終端彩色)
+	if command -v qrencode >/dev/null 2>&1; then
+		qrencode -t ANSIUTF8 "$u" || true
+	# 其次使用現有 python qr-generator 產生 ASCII + PNG
+	elif [[ -f "$CUSTOM_DIR/launchers/utils/qr-generator.py" ]]; then
+		PYTHONPATH="$CUSTOM_DIR/launchers/utils" python3 "$CUSTOM_DIR/launchers/utils/qr-generator.py" "$u" || echo "$u"
+	else
+		# 簡易 fallback
+		echo "$u"
+	fi
+	echo ""
+}
 
 need node; need pnpm; need python3; need curl
 [[ $ENABLE_NGROK = 1 ]] && need "$NGROK_BIN" || true
 [[ -f "$APP_SERVER" ]] || { err "找不到 $APP_SERVER"; exit 3; }
+
+# 若尚未安裝依賴，自動執行 pnpm install (可用 SKIP_INSTALL=1 跳過)
+if [[ ! -d "$ROOT_DIR/node_modules" && ${SKIP_INSTALL:-0} != 1 ]]; then
+	info "偵測到缺少 node_modules，執行 pnpm install ..."
+	(cd "$ROOT_DIR" && pnpm install)
+fi
 
 if [[ $SKIP_BUILD != 1 ]]; then
 	NEED_BUILD=0
