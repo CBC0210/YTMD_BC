@@ -98,8 +98,11 @@ export class DiscordService {
 
     const activityInfo: SetActivity = {
       type: ActivityType.Listening,
-      details: truncateString(songInfo.title, 128), // Song title
-      state: truncateString(songInfo.artist, 128), // Artist name
+      statusDisplayType: config.statusDisplayType,
+      details: truncateString(songInfo.alternativeTitle ?? songInfo.title, 128), // Song title
+      detailsUrl: songInfo.url ?? undefined,
+      state: truncateString(songInfo.tags?.at(0) ?? songInfo.artist, 128), // Artist name
+      stateUrl: songInfo.artistUrl,
       largeImageKey: songInfo.imageSrc ?? undefined,
       largeImageText: songInfo.album
         ? truncateString(songInfo.album, 128)
@@ -275,7 +278,6 @@ export class DiscordService {
     }
 
     // Cache the latest song info
-    this.lastSongInfo = songInfo;
     this.timerManager.clear(TimerKey.ClearActivity);
 
     if (!this.rpc || !this.ready) {
@@ -292,7 +294,10 @@ export class DiscordService {
       !songChanged &&
       isSeek(this.lastSongInfo?.elapsedSeconds ?? 0, elapsedSeconds);
 
-    if (songChanged || pauseChanged || seeked) {
+    if (
+      (songChanged || pauseChanged || seeked) &&
+      this.lastSongInfo !== undefined
+    ) {
       this.timerManager.clear(TimerKey.UpdateTimeout);
 
       const activityInfo = this.buildActivityInfo(songInfo, this.config);
@@ -318,7 +323,6 @@ export class DiscordService {
           console.error(LoggerPrefix, 'Failed to set throttled activity:', err),
         );
 
-      this.lastSongInfo.elapsedSeconds = elapsedSeconds;
       this.lastProgressUpdate = now;
       this.setActivityTimeout();
     } else {
@@ -348,6 +352,7 @@ export class DiscordService {
         remainingThrottle,
       );
     }
+    this.lastSongInfo = { ...songInfo };
   }
 
   /**

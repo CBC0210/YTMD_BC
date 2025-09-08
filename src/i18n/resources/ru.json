@@ -21,7 +21,7 @@
   "main": {
     "console": {
       "did-finish-load": {
-        "dev-tools": "Загрузка завершена. DevTools открыт"
+        "dev-tools": "Загрузка завершена. DevTools открыты"
       },
       "i18n": {
         "loaded": "i18n загружен"
@@ -150,6 +150,13 @@
           "visual-tweaks": {
             "label": "Визуальные настройки",
             "submenu": {
+              "custom-window-title": {
+                "label": "Собственное название окна",
+                "prompt": {
+                  "label": "Введите собственное название окна: (оставьте пустым, чтобы отключить)",
+                  "placeholder": "Например: YouTube Music"
+                }
+              },
               "like-buttons": {
                 "default": "Default",
                 "force-show": "Всегда показывать",
@@ -381,6 +388,11 @@
       },
       "templates": {
         "title": "Открыть выбор субтитров"
+      },
+      "toast": {
+        "caption-changed": "Субтитры изменены на {{language}}",
+        "caption-disabled": "Субтитры отключены",
+        "no-captions": "Нет доступных субтитров для этой песни"
       }
     },
     "compact-sidebar": {
@@ -409,6 +421,19 @@
         }
       }
     },
+    "custom-output-device": {
+      "description": "Настройка устройства вывода медиа для песен",
+      "menu": {
+        "device-selector": "Выберите устройство"
+      },
+      "name": "Пользовательское устройство вывода",
+      "prompt": {
+        "device-selector": {
+          "label": "Выберите устройство вывода медиа, которое будет использоваться",
+          "title": "Выберите устройство вывода"
+        }
+      }
+    },
     "disable-autoplay": {
       "description": "Запускает песню сразу на паузе",
       "menu": {
@@ -432,7 +457,15 @@
         "hide-duration-left": "Скрыть сколько осталось времени",
         "hide-github-button": "Скрыть ссылку на GitHub",
         "play-on-youtube-music": "Воспроизвести на YouTube Music",
-        "set-inactivity-timeout": "Поставить таймер неактивности"
+        "set-inactivity-timeout": "Поставить таймер неактивности",
+        "set-status-display-type": {
+          "label": "Текст статуса",
+          "submenu": {
+            "artist": "Слушает {исполнитель}",
+            "title": "Слушает {название трека}",
+            "youtube-music": "Слушает YouTube Music"
+          }
+        }
       },
       "name": "Discord Rich Presence",
       "prompt": {
@@ -600,7 +633,15 @@
     },
     "navigation": {
       "description": "Стрелки навигации \"вперед/назад\" интегрированы в интерфейс, как в вашем любимом браузере",
-      "name": "Навигация"
+      "name": "Навигация",
+      "templates": {
+        "back": {
+          "title": "Предыдущая страница"
+        },
+        "forward": {
+          "title": "Следующая страница"
+        }
+      }
     },
     "no-google-login": {
       "description": "Убрать из интерфейса кнопки и ссылки для входа через Google",
@@ -692,7 +733,12 @@
         }
       },
       "description": "Позволяет изменять качество видео с помощью кнопки на оверлее видео",
-      "name": "Изменение качества видео"
+      "name": "Изменение качества видео",
+      "renderer": {
+        "quality-settings-button": {
+          "label": "Открыть настройки качества плеера"
+        }
+      }
     },
     "scrobbler": {
       "description": "Добавляет поддержку скробблинга (last.fm, Listenbrainz)",
@@ -711,6 +757,7 @@
         "listenbrainz": {
           "token": "Введите токен пользователя ListenBrainz"
         },
+        "scrobble-alternative-artist": "Использовать альтернативных исполнителей",
         "scrobble-alternative-title": "Использовать альтернативные названия",
         "scrobble-other-media": "Скробблинг других медиа"
       },
@@ -828,6 +875,27 @@
       "description": "Добавляет виджет тачбара для пользователей macOS",
       "name": "Тачбар"
     },
+    "transparent-player": {
+      "description": "Делает окно приложения прозрачным",
+      "menu": {
+        "opacity": {
+          "label": "Непрозрачность",
+          "submenu": {
+            "percent": "{{opacity}}%"
+          }
+        },
+        "type": {
+          "label": "Тип",
+          "submenu": {
+            "acrylic": "Acrylic",
+            "mica": "Mica",
+            "none": "Отключено",
+            "tabbed": "Tabbed"
+          }
+        }
+      },
+      "name": "Прозрачный плеер"
+    },
     "tuna-obs": {
       "description": "Интеграция с плагином Tuna от OBS",
       "name": "Tuna OBS"
@@ -859,7 +927,8 @@
       },
       "name": "Переключатель видео",
       "templates": {
-        "button": "Песня"
+        "button-song": "Песня",
+        "button-video": "Видео"
       }
     },
     "visualizer": {
