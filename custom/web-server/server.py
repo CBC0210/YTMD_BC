@@ -56,15 +56,18 @@ def main():
     ytmd_api = os.getenv('YTMD_API', 'http://localhost:26538/api/v1')
     server_ip = get_server_ip()
     
+    # 取得埠號（允許外部指定）
+    port = int(os.getenv('WEB_SERVER_PORT', '8080'))
+
     logger.info(f"🔗 YTMD API 端點: {ytmd_api}")
     logger.info(f"🌐 服務器 IP: {server_ip}")
-    logger.info(f"📱 Web 介面: http://{server_ip}:8080")
+    logger.info(f"📱 Web 介面: http://{server_ip}:{port}")
     
     # 根據環境變數決定是否啟用調試模式
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     
     try:
-        app.run(host='0.0.0.0', port=8080, debug=debug_mode, use_reloader=False)
+        app.run(host='0.0.0.0', port=port, debug=debug_mode, use_reloader=False)
     except KeyboardInterrupt:
         logger.info("🛑 收到鍵盤中斷，正在關閉...")
     except Exception as e:

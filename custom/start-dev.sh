@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CUSTOM_DIR="$ROOT_DIR/custom"
 WS_DIR="$CUSTOM_DIR/web-server"
 LOG_FILE="/tmp/ytmd-web.log"
-PORT=${WEB_SERVER_PORT:-5678}
+PORT=${WEB_SERVER_PORT:-8080}
 TOKEN=${CUSTOM_API_TOKEN:-dev-token}
 
 echo "[custom] 使用 PORT=$PORT TOKEN=$TOKEN"
@@ -18,20 +18,44 @@ if [ -f "$WS_DIR/requirements.txt" ]; then
     "$WS_DIR/.venv/bin/pip" install -r "$WS_DIR/requirements.txt"
   fi
   # 啟動 web server（若尚未啟動）
+  RESTART=${RESTART_WEB:-0}
+  if pgrep -f "python.*$WS_DIR/server.py" >/dev/null 2>&1; then
+    if [ "$RESTART" = "1" ]; then
+      echo "[custom] 停止既有 web server (RESTART_WEB=1)"
+      pkill -f "python.*$WS_DIR/server.py" || true
+      sleep 1
+    else
+      echo "[custom] web server 已在執行中，略過 (設定 RESTART_WEB=1 可重啟)"
+    fi
+  fi
   if ! pgrep -f "python.*$WS_DIR/server.py" >/dev/null 2>&1; then
-    echo "[custom] 啟動 web server..."
+    echo "[custom] 啟動 web server (port=$PORT)..."
     ( WEB_SERVER_PORT="$PORT" CUSTOM_API_TOKEN="$TOKEN" nohup "$WS_DIR/.venv/bin/python" "$WS_DIR/server.py" >"$LOG_FILE" 2>&1 & )
-    echo "[custom] web server 已啟動 (log: $LOG_FILE)"
-  else
-    echo "[custom] web server 已在執行中，略過"
+    # 等待健康檢查
+    for i in {1..15}; do
+      if curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
+        echo "[custom] web server 就緒 (http://127.0.0.1:$PORT)"
+        break
+      fi
+      sleep 1
+      if [ $i -eq 15 ]; then
+        echo "[custom] ⚠️ web server 尚未就緒，請檢查日誌: $LOG_FILE"
+      fi
+    done
   fi
 else
   echo "[custom] 無 requirements.txt，跳過 web server 啟動"
 fi
 
 cd "$ROOT_DIR"
+if [ "${SERVER_ONLY:-0}" = "1" ]; then
+  echo "[custom] SERVER_ONLY=1 不啟動 Electron/Vite，只保留 web server (log: $LOG_FILE)"
+  tail -f "$LOG_FILE"
+  exit 0
+fi
+
 if command -v pnpm >/dev/null 2>&1; then
-  echo "[custom] 啟動 pnpm dev"
+  echo "[custom] 啟動 pnpm dev (可用 CTRL+C 結束，web server 會繼續運行)"
   pnpm dev
 else
   echo "[custom] 未找到 pnpm，請先安裝"

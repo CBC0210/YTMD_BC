@@ -28,6 +28,15 @@ def home():
     return render_template('index.html')
 
 
+@api_blueprint.route('/health')
+def health():
+    """健康檢查端點"""
+    return jsonify({
+        'status': 'ok',
+        'queue_connected': ytmd_service.is_connected(),
+    })
+
+
 @api_blueprint.route('/queue')
 def queue():
     """獲取當前佇列"""
