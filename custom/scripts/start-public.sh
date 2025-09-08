@@ -12,6 +12,8 @@ API_URL=${YTMD_API:-http://localhost:26538/api/v1}
 ENABLE_NGROK=${ENABLE_NGROK:-1}
 NGROK_BIN=${NGROK_BIN:-ngrok}
 NGROK_REGION=${NGROK_REGION:-ap}
+NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:-}
+NGROK_ARGS=${NGROK_ARGS:-}
 ROTATE_INTERVAL_MIN=${ROTATE_INTERVAL_MIN:-}
 FORCE_NEW_TUNNEL=${FORCE_NEW_TUNNEL:-0}
 FORCE_REBUILD=${FORCE_REBUILD:-0}
@@ -117,12 +119,26 @@ start_app() {
 
 start_ngrok() {
 	[[ $ENABLE_NGROK = 1 ]] || return 0
+	# 初始化 authtoken (若提供且尚未設定)
+	if [[ -n $NGROK_AUTHTOKEN ]]; then
+		if ! grep -q "$NGROK_AUTHTOKEN" "$HOME/.config/ngrok/ngrok.yml" 2>/dev/null; then
+			info "設定 ngrok authtoken"
+			"$NGROK_BIN" config add-authtoken "$NGROK_AUTHTOKEN" >/dev/null 2>&1 || warn "authtoken 設定可能失敗"
+		fi
+	fi
 	pgrep -f "$NGROK_BIN .*http $PORT" >/dev/null 2>&1 && [[ $FORCE_NEW_TUNNEL = 1 ]] && { pkill -f "$NGROK_BIN .*http $PORT" || true; sleep 1; }
 	pgrep -f "$NGROK_BIN .*http $PORT" >/dev/null 2>&1 && { warn "ngrok 已存在"; return; }
-	info "啟動 ngrok"; "$NGROK_BIN" http --region="$NGROK_REGION" "$PORT" >>"$NGROK_LOG" 2>&1 & echo $! > "$PID_NGROK"
+	info "啟動 ngrok (region=$NGROK_REGION port=$PORT)"
+	# --log=stdout 確保可擷取 URL；ngrok v3 有時需明確帶出
+	"$NGROK_BIN" http --region="$NGROK_REGION" $NGROK_ARGS --log=stdout "$PORT" >>"$NGROK_LOG" 2>&1 & echo $! > "$PID_NGROK"
 }
 
-get_ngrok_url() { grep -Eo 'https://[-a-zA-Z0-9]+\.ngrok-[a-z]+\.app' "$NGROK_LOG" | tail -n1 | tr -d '\r' || true; }
+get_ngrok_url() {
+	# 支援常見輸出格式:
+	# Forwarding                    https://xxxxx.ngrok-free.app
+	# 或直接出現 URL
+	grep -Eo 'https://[a-zA-Z0-9.-]+\.ngrok[-a-zA-Z0-9]*\.(app|io)' "$NGROK_LOG" | tail -n1 | tr -d '\r' || true
+}
 rotate_ngrok_if_due() { [[ -n "$ROTATE_INTERVAL_MIN" && $ENABLE_NGROK = 1 ]] || return 0; local f="$RUNTIME_DIR/ngrok_started.ts"; local now=$(date +%s); local int=$((ROTATE_INTERVAL_MIN*60)); local st=0; [[ -f $f ]] && st=$(cat $f); (( now-st >= int )) || return 0; info "rotate ngrok"; pkill -f "$NGROK_BIN .*http $PORT" || true; sleep 2; start_ngrok; echo $now > $f; }
 
 update_links() {
@@ -145,15 +161,25 @@ start_web; start_ngrok; start_app
 current_public=""
 if [[ $ENABLE_NGROK = 1 ]]; then
 	# 若只想顯示 public URL 的 QR，則等待；否則若 QR_PUBLIC_ONLY=0 可先顯示本地
-	for ((i=1;i<=QR_TIMEOUT_SEC;i++)); do
-		rotate_if_big "$NGROK_LOG" "$LOG_MAX_KB"
-		u=$(get_ngrok_url)
-		if [[ -n $u ]]; then current_public=$u; break; fi
-		sleep 1
-	done
+		for ((i=1;i<=QR_TIMEOUT_SEC;i++)); do
+			rotate_if_big "$NGROK_LOG" "$LOG_MAX_KB"
+			u=$(get_ngrok_url)
+			if [[ -n $u ]]; then current_public=$u; break; fi
+			# 檢查是否有 auth / login 錯誤關鍵字並提示
+			if grep -qiE 'ERR|error|account|auth|invalid' "$NGROK_LOG"; then
+				warn "可能 ngrok 未登入或 authtoken 缺失 (提供 NGROK_AUTHTOKEN=xxx)"
+			fi
+			sleep 1
+		done
 	if [[ -z $current_public ]]; then
 		if [[ $QR_PUBLIC_ONLY = 1 ]]; then
-			warn "在 ${QR_TIMEOUT_SEC}s 內未取得 ngrok URL，將不顯示暫時 QR (稍後偵測到會再顯示)"
+					warn "在 ${QR_TIMEOUT_SEC}s 內未取得 ngrok URL，顯示診斷 (NGROK_DEBUG=1 可顯示更多)"
+			if [[ ${NGROK_DEBUG:-0} = 1 ]]; then
+				echo "----- ngrok log (tail 40) -----" >&2
+				tail -n 40 "$NGROK_LOG" >&2 || true
+				echo "--------------------------------" >&2
+						echo "建議檢查: 1) ngrok 是否登入 -> ngrok config add-authtoken <token>  2) 是否被防火牆阻擋" >&2
+			fi
 		else
 			info "暫無 ngrok URL，先使用本地網址 QR"
 			qr_print "http://$(local_ip):$PORT"
