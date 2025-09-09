@@ -1,10 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "./components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
@@ -34,14 +29,13 @@ import {
   SkipForward,
   Volume2,
   Heart,
-  Trash,
   RefreshCw,
   X,
 } from "lucide-react";
 import { api } from "./lib/api";
 
 interface Song {
-  id: string; // for UI list keys; for API items this can be videoId
+  id: string;
   title: string;
   artist: string;
   album?: string;
@@ -62,59 +56,42 @@ type QueueRowProps = {
   onClick: (song: QueueItem) => void;
 };
 
-const SwipeRow: React.FC<QueueRowProps> = ({ song, isCurrent, onDelete, onClick }) => {
+const SwipeRow = React.forwardRef<HTMLDivElement, QueueRowProps>(({ song, isCurrent, onDelete, onClick }, ref) => {
   const startX = React.useRef<number | null>(null);
   const [dragX, setDragX] = React.useState(0);
   const [dragging, setDragging] = React.useState(false);
   const [open, setOpen] = React.useState(false);
-  const max = 80; // 最大左滑距離
-  const openOffset = 56; // 開啟時左移距離（與圖示按鈕寬度相近）
-  const threshold = 48; // 開啟刪除的閾值
+  const max = 80;
+  const openOffset = 56;
+  const threshold = 48;
 
   const endDrag = () => {
     if (!dragging) return;
     setDragging(false);
-    if (dragX <= -threshold) {
-      setOpen(true);
-    } else {
-      setOpen(false);
-    }
+    if (dragX <= -threshold) setOpen(true); else setOpen(false);
     setDragX(0);
   };
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    setDragging(true);
-  };
+  const onTouchStart = (e: React.TouchEvent) => { startX.current = e.touches[0].clientX; setDragging(true); };
   const onTouchMove = (e: React.TouchEvent) => {
     if (startX.current == null) return;
     const dx = e.touches[0].clientX - startX.current;
     setDragX(Math.max(-max, Math.min(0, dx)));
   };
-  const onTouchEnd = () => {
-    endDrag();
-    startX.current = null;
-  };
+  const onTouchEnd = (e?: React.TouchEvent) => { if (e) e.preventDefault(); endDrag(); startX.current = null; };
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    startX.current = e.clientX;
-    setDragging(true);
-  };
+  const onMouseDown = (e: React.MouseEvent) => { startX.current = e.clientX; setDragging(true); };
   const onMouseMove = (e: React.MouseEvent) => {
     if (!dragging || startX.current == null || e.buttons === 0) return;
     const dx = e.clientX - startX.current;
     setDragX(Math.max(-max, Math.min(0, dx)));
   };
-  const onMouseUp = () => {
-    endDrag();
-    startX.current = null;
-  };
+  const onMouseUp = () => { endDrag(); startX.current = null; };
 
   const translate = dragging ? dragX : (open ? -openOffset : 0);
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
-      {/* 背後的刪除按鈕區 */}
+    <div ref={ref} className="relative overflow-hidden rounded-lg">
       <div className="absolute inset-y-0 right-0 flex items-center pr-2 pl-3">
         <Button
           onClick={(e) => { e.stopPropagation(); onDelete(song); setOpen(false); }}
@@ -127,7 +104,6 @@ const SwipeRow: React.FC<QueueRowProps> = ({ song, isCurrent, onDelete, onClick 
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
-      {/* 前景內容，可左右滑動 */}
       <div
         className="flex items-center gap-3 p-3 bg-gray-700 transition-transform select-none"
         style={{ transform: `translateX(${translate}px)` }}
@@ -138,8 +114,8 @@ const SwipeRow: React.FC<QueueRowProps> = ({ song, isCurrent, onDelete, onClick 
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onClick={() => {
-          if (dragging) return; // 拖動中不觸發 click
-          if (open) { setOpen(false); return; } // 已開啟則先關閉
+          if (dragging) return;
+          if (open) { setOpen(false); return; }
           onClick(song);
         }}
       >
@@ -157,7 +133,8 @@ const SwipeRow: React.FC<QueueRowProps> = ({ song, isCurrent, onDelete, onClick 
       </div>
     </div>
   );
-};
+});
+SwipeRow.displayName = "SwipeRow";
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -204,129 +181,10 @@ export default function App() {
   // 防呆：加入佇列時的鎖與提示
   const [adding, setAdding] = useState<Set<string>>(new Set());
   const [infoMsg, setInfoMsg] = useState<string>("");
+  const [toastMsg, setToastMsg] = useState<string>("");
+  const toastTimerRef = useRef<number | null>(null);
 
-  // Mock data for search results
-  const mockSearchResults: Song[] = [
-    {
-      id: "3",
-      title: "稻香",
-      artist: "周杰倫",
-      album: "魔杰座",
-      duration: "3:44",
-    },
-    {
-      id: "4",
-      title: "青花瓷",
-      artist: "周杰倫",
-      album: "我很忙",
-      duration: "3:58",
-    },
-    {
-      id: "5",
-      title: "彩虹",
-      artist: "周杰倫",
-      album: "我很忙",
-      duration: "4:25",
-    },
-    {
-      id: "6",
-      title: "蒲公英的約定",
-      artist: "周杰倫",
-      album: "我很忙",
-      duration: "3:56",
-    },
-    {
-      id: "13",
-      title: "安靜",
-      artist: "周杰倫",
-      album: "范特西",
-      duration: "4:14",
-    },
-    {
-      id: "14",
-      title: "晴天",
-      artist: "周杰倫",
-      album: "葉惠美",
-      duration: "4:29",
-    },
-    {
-      id: "15",
-      title: "回到過去",
-      artist: "周杰倫",
-      album: "八度空間",
-      duration: "3:46",
-    },
-    {
-      id: "16",
-      title: "說好不哭",
-      artist: "周杰倫",
-      album: "說好不哭",
-      duration: "4:08",
-    },
-    {
-      id: "17",
-      title: "花海",
-      artist: "周杰倫",
-      album: "魔杰座",
-      duration: "4:21",
-    },
-    {
-      id: "18",
-      title: "世界末日",
-      artist: "周杰倫",
-      album: "葉惠美",
-      duration: "3:42",
-    },
-  ];
-
-  // Mock data for history and recommendations
-  const historyData: Song[] = [
-    {
-      id: "7",
-      title: "不能說的秘密",
-      artist: "周杰倫",
-      album: "不能說的秘密電影原聲帶",
-      duration: "4:23",
-    },
-    {
-      id: "8",
-      title: "七里香",
-      artist: "周杰倫",
-      album: "七里香",
-      duration: "4:05",
-    },
-    {
-      id: "9",
-      title: "簡單愛",
-      artist: "周杰倫",
-      album: "范特西",
-      duration: "4:25",
-    },
-  ];
-
-  const recommendationsData: Song[] = [
-    {
-      id: "10",
-      title: "楓",
-      artist: "周杰倫",
-      album: "十一月的蕭邦",
-      duration: "4:33",
-    },
-    {
-      id: "11",
-      title: "髮如雪",
-      artist: "周杰倫",
-      album: "十二新作",
-      duration: "5:02",
-    },
-    {
-      id: "12",
-      title: "東風破",
-      artist: "周杰倫",
-      album: "葉惠美",
-      duration: "3:49",
-    },
-  ];
+  // 以上 mock 範例資料已移除，改由 API 取得
 
   const searchAbortRef = useRef<AbortController | null>(null);
   const handleSearch = async (query: string) => {
@@ -369,6 +227,52 @@ export default function App() {
     setSearchResults([]);
   };
 
+  // 顯示加入按鈕文案（固定寬度避免抖動）
+  const renderAddLabel = (id?: string) =>
+    id && adding.has(id) ? "加入中…" : "加入";
+
+  // 歷史列：改為按鈕點擊刪除（無滑動）
+  const HistoryRow: React.FC<{
+    song: Song;
+    onDelete: (s: Song) => void;
+  }> = ({ song, onDelete }) => (
+    <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+      <div className="flex items-center gap-3 flex-1">
+        {song.thumbnail && (
+          <img src={song.thumbnail} alt="thumb" className="w-10 h-10 object-cover rounded" />
+        )}
+        <div className="flex-1">
+          <h4 className="font-medium">{song.title}</h4>
+          <p className="text-gray-400 text-sm">
+            {song.artist}{song.album ? ` • ${song.album}` : ''}{song.duration ? ` • ${song.duration}` : ''}
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          onClick={() => addToQueue(song)}
+          disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
+          style={{ backgroundColor: "#e74c3c" }}
+          className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          {renderAddLabel(song.videoId || song.id)}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onDelete(song)}
+          className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          aria-label="刪除"
+          title="刪除"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   const refreshRecommendations = async () => {
     if (!nickname) return;
     setRecoLoading(true);
@@ -406,6 +310,13 @@ export default function App() {
         },
         nickname || undefined,
       );
+  // 顯示頂部 Toast 成功提示（成功後再提示）
+  const title = song.title || "";
+  const artist = song.artist ? ` - ${song.artist}` : "";
+  const msg = `已加入到佇列：${title}${artist}`;
+  setToastMsg(msg);
+  if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+  toastTimerRef.current = window.setTimeout(() => setToastMsg(""), 2500) as unknown as number;
       // refresh queue after enqueue
       const q = await api.queue();
       setPlayQueue(
@@ -421,21 +332,10 @@ export default function App() {
           queuePosition: it.index,
         })) as any,
       );
-      // refresh user history and recommendations immediately
-  if (nickname) {
+      // 避免刷新歷史造成彈跳，僅刷新推薦
+      if (nickname) {
         try {
-          const [hist, rec] = await Promise.all([
-            api.user.history(nickname),
-            api.user.recommendations(nickname),
-          ]);
-          setHistory((hist || []).map((x: any) => ({
-            id: x.videoId,
-            videoId: x.videoId,
-            title: x.title,
-            artist: x.artist,
-            duration: x.duration,
-            thumbnail: x.thumbnail,
-          })));
+          const rec = await api.user.recommendations(nickname);
           setReco((rec || []).map((s: any) => ({
             id: s.videoId,
             videoId: s.videoId,
@@ -1299,7 +1199,7 @@ export default function App() {
                       </AlertDialog>
                     </span>
                   </CardTitle>
-                  <p className="text-xs text-gray-400 mt-1">小提示：左滑可刪除。</p>
+                  <p className="text-xs text-gray-400 mt-1">小提示：點擊右側垃圾桶刪除。</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {infoMsg && (
@@ -1308,14 +1208,13 @@ export default function App() {
                   {history.length === 0 && (
                     <div className="text-gray-400 text-sm">目前沒有歷史記錄</div>
                   )}
-                  {history.map((song) => (
-                    <HistorySwipeRow
-                      key={song.id}
-                      song={song}
-                      onDelete={(s) => setSelectedHistory(s as any)}
-                      onClick={() => { /* 點擊不再刪除，保留無動作 */ }}
-                    />
-                  ))}
+              {history.map((song) => (
+                <HistoryRow
+                  key={song.id}
+                  song={song}
+                  onDelete={(s) => setSelectedHistory(s)}
+                />
+              ))}
                 </CardContent>
               </Card>
             )}
@@ -1536,6 +1435,14 @@ export default function App() {
           </p>
         </footer>
       </div>
-    </div>
+    {/* Top Toast */}
+    {toastMsg && (
+      <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="mt-3 bg-black/75 text-white text-sm px-4 py-2 rounded-full shadow-md pointer-events-auto">
+          {toastMsg}
+        </div>
+      </div>
+    )}
+  </div>
   );
 }
