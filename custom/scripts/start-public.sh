@@ -36,6 +36,12 @@ AUTO_INSTALL_QRCODE=${AUTO_INSTALL_QRCODE:-1}
 FORCE_BACKEND_RESTART=${FORCE_BACKEND_RESTART:-0}
 FRONTEND_FORCE_RESTART_ON_404=${FRONTEND_FORCE_RESTART_ON_404:-1}
 
+# API Server (YTMD plugin) connectivity config; align with plugin menu (hostname/port)
+YTMD_HOSTNAME=${YTMD_HOSTNAME:-${YTMD_HOST:-localhost}}
+YTMD_PORT=${YTMD_PORT:-26538}
+# Compose YTMD_API if not provided
+export YTMD_API=${YTMD_API:-http://$YTMD_HOSTNAME:$YTMD_PORT/api/v1}
+
 # make Vite/electron-vite more permissive when in dev
 export VITE_ALLOW_ALL_HOSTS=1
 export NGROK_HOST="${NGROK_HOST:-}"
@@ -75,7 +81,9 @@ cleanup(){
     [ -n "$FRONT_PID" ] && kill "$FRONT_PID" 2>/dev/null || true
     rm -f /tmp/ytreq-frontend.pid
   fi
-  pkill -f "vite.*:${FRONTEND_PORT}" 2>/dev/null || true
+  # kill any vite processes regardless of auto-selected port
+  pkill -f "vite" 2>/dev/null || true
+  pkill -f "node .*vite" 2>/dev/null || true
   pkill -f "http.server ${FRONTEND_PORT}" 2>/dev/null || true
   kill_port "$FRONTEND_PORT"
   # stop backend flask
@@ -205,7 +213,8 @@ start_frontend() {
     (
       cd "$FRONTEND_DIR"
       pnpm install >>"$FRONTEND_LOG" 2>&1 || true
-      pnpm dev --host 0.0.0.0 --port $FRONTEND_PORT >>"$FRONTEND_LOG" 2>&1 & echo $! > "$PID_FILE"
+  # Force Vite to bind the configured port and fail if occupied
+  pnpm vite --host 0.0.0.0 --port $FRONTEND_PORT --strictPort >>"$FRONTEND_LOG" 2>&1 & echo $! > "$PID_FILE"
     )
     return 0
   fi
@@ -230,10 +239,12 @@ fi
 log "預清理既有進程（若有）..."
 pkill -f "$NGROK_BIN http .*:${FRONTEND_PORT}" 2>/dev/null || true
 pkill -f "$NGROK_BIN http .*:${BACKEND_PORT}" 2>/dev/null || true
-pkill -f "vite.*:${FRONTEND_PORT}" 2>/dev/null || true
+# Be aggressive to avoid stray vite instances from previous runs
+pkill -f "vite" 2>/dev/null || true
+pkill -f "node .*vite" 2>/dev/null || true
 pkill -f "http.server ${FRONTEND_PORT}" 2>/dev/null || true
 pkill -f "server.py" 2>/dev/null || true
-kill_port "$FRONTEND_PORT"; kill_port "$BACKEND_PORT"
+kill_port "$FRONTEND_PORT"; kill_port "$BACKEND_PORT"; kill_port "$ELECTRON_RENDERER_PORT"
 
 start_backend
 
@@ -388,44 +399,70 @@ JSON
 write_public_links "$frontend_url" "$backend_url"
 log "GET /public-links 可取得 JSON（由 Flask 服務）"
 
-(
+monitor_public_links(){
   prev_lan="$LAN_IP"
-  while true; do
+  while :; do
     sleep 15
     current_lan=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}')
-    [ -z "$current_lan" ] && current_lan="$prev_lan"
-  if [ "$current_lan" != "$prev_lan" ]; then prev_lan="$current_lan"; LAN_IP="$current_lan"; log "偵測到 LAN IP 變更 -> $current_lan 重新寫入 public_links"; write_public_links "$frontend_url" "$backend_url"; fi
+    if [ -z "$current_lan" ]; then
+      current_lan="$prev_lan"
+    fi
+    if [ "$current_lan" != "$prev_lan" ]; then
+      prev_lan="$current_lan"
+      LAN_IP="$current_lan"
+      log "偵測到 LAN IP 變更 -> $current_lan 重新寫入 public_links"
+      write_public_links "$frontend_url" "$backend_url"
+    fi
+
     fe_pub=$(grep '"frontend"' -A2 "$LINKS_FILE" 2>/dev/null | grep '"public"' | head -n1 | sed -E 's/.*"public": "([^"]*)".*/\1/')
     be_pub=$(grep '"backend"' -A2 "$LINKS_FILE" 2>/dev/null | grep '"public"' | head -n1 | sed -E 's/.*"public": "([^"]*)".*/\1/')
+
     if [ -z "$fe_pub" ] || [ "$fe_pub" = "null" ]; then
       new_url=$(fetch_ngrok_url "$FRONTEND_PORT")
-      [ -n "$new_url" ] && { frontend_url="$new_url"; write_public_links "$new_url" "$backend_url"; continue; }
+      if [ -n "$new_url" ]; then
+        frontend_url="$new_url"
+        write_public_links "$new_url" "$backend_url"
+        continue
+      fi
     else
       code=$(curl -sk -o /dev/null -w '%{http_code}' "$fe_pub" || echo 000)
       case "$code" in
         000|502|503|504)
           log "⚠️ frontend public URL ($fe_pub) HTTP=$code，嘗試重建 ngrok"
-          pkill -f "$NGROK_BIN http .*:$FRONTEND_PORT" 2>/dev/null || true; sleep 1
-          start_ngrok frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}"; sleep 2
+          pkill -f "$NGROK_BIN http .*:$FRONTEND_PORT" 2>/dev/null || true
+          sleep 1
+          start_ngrok frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}"
+          sleep 2
           new_url=$(fetch_ngrok_url "$FRONTEND_PORT")
-          [ -n "$new_url" ] && { frontend_url="$new_url"; write_public_links "$new_url" "$backend_url"; }
+          if [ -n "$new_url" ]; then
+            frontend_url="$new_url"
+            write_public_links "$new_url" "$backend_url"
+          fi
           ;;
       esac
     fi
+
     if [ -n "$be_pub" ] && [ "$be_pub" != "null" ]; then
       code=$(curl -sk -o /dev/null -w '%{http_code}' "$be_pub/health" || echo 000)
       case "$code" in
         000|502|503|504)
           log "⚠️ backend public URL ($be_pub) HTTP=$code，嘗試重建 ngrok"
-          pkill -f "$NGROK_BIN http .*:$BACKEND_PORT" 2>/dev/null || true; sleep 1
-          start_ngrok backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}"; sleep 2
+          pkill -f "$NGROK_BIN http .*:$BACKEND_PORT" 2>/dev/null || true
+          sleep 1
+          start_ngrok backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}"
+          sleep 2
           new_b=$(fetch_ngrok_url "$BACKEND_PORT")
-          [ -n "$new_b" ] && { backend_url="$new_b"; write_public_links "$frontend_url" "$new_b"; }
+          if [ -n "$new_b" ]; then
+            backend_url="$new_b"
+            write_public_links "$frontend_url" "$new_b"
+          fi
           ;;
       esac
     fi
   done
-) &
+}
+
+monitor_public_links &
 
 # -------------------- QR code --------------------
 QR_SCRIPT="$CUSTOM_DIR/launchers/utils/qr-generator.py"

@@ -127,6 +127,7 @@ export default defineConfig({
     };
   }),
   renderer: defineViteConfig(({ mode }) => {
+  const rendererPort = Number(process.env.ELECTRON_RENDERER_PORT || 5600);
     const commonConfig: UserConfig = {
       experimental: {
         enableNativePlugin: mode !== 'development', // Disable native plugin in development mode to avoid issues with HMR (bug in rolldown-vite)
@@ -160,6 +161,8 @@ export default defineConfig({
       server: {
         host: true,
         allowedHosts: true,
+  port: rendererPort,
+  strictPort: true,
         cors: {
           origin: 'https://music.youtube.com',
         },

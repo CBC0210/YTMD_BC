@@ -1,0 +1,83 @@
+{
+  "users": {
+    "CBC": {
+      "history": [
+        {
+          "videoId": "jHVZAcF5_6g",
+          "title": "山海",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
+          "duration": "4:12"
+        },
+        {
+          "videoId": "gPfmCw3UveY",
+          "title": "Television / So Far So Good",
+          "artist": "Rex Orange County",
+          "thumbnail": "https://lh3.googleusercontent.com/QCE_g7hOZbDi8k8Lo58eIXZOl3kC_wwFMXfaaYxC6fVontxB-TX30_SRV16OQlvHvZMz6NL8YsVA42nV=w60-h60-l90-rj",
+          "duration": "4:23"
+        },
+        {
+          "videoId": "pr8k4LdgxAM",
+          "title": "New Thang",
+          "artist": "Redfoo",
+          "thumbnail": "https://lh3.googleusercontent.com/VXNc0KvcOGIeRPD7a1bIEo4KklGgPa2CYTAlRE9Ox6kL78oXoI_k409h9-fQLwEtJzWXCCmL0hhCDpH9=w60-h60-l90-rj",
+          "duration": "3:47"
+        },
+        {
+          "videoId": "gE1F1CVExhg",
+          "title": "帥到分手",
+          "artist": "周湯豪",
+          "thumbnail": "https://lh3.googleusercontent.com/p8KNex9pIxG4HaAUbAIkXy4dbQXCVCDq7leGNTaIMv-7sAmjjKR6HW0Z83h5cNacucGh9oXvbtQYAj0V7A=w60-h60-l90-rj",
+          "duration": "3:40"
+        },
+        {
+          "videoId": "we9IbnUSBu4",
+          "title": "醜",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w60-h60-l90-rj",
+          "duration": "1:58"
+        },
+        {
+          "videoId": "iR1sAex__VA",
+          "title": "Waiting For Love",
+          "artist": "Avicii",
+          "thumbnail": "https://lh3.googleusercontent.com/gNvQI_me1i5v3oXEaJCPYpjhYj5yQSObQNnKsBYTZhWqax62D6AslMc1z7Euvl2r6wnvuqWeLzFGUv5R=w60-h60-l90-rj",
+          "duration": "3:51"
+        }
+      ],
+      "likes": [
+        {
+          "videoId": "we9IbnUSBu4",
+          "title": "醜",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w544-h544-l90-rj",
+          "duration": "1:58"
+        }
+      ]
+    },
+    "Fuzzy": {
+      "history": [
+        {
+          "videoId": "j61QtWB1zj0",
+          "title": "Kamin",
+          "artist": "EMIN",
+          "thumbnail": "https://lh3.googleusercontent.com/Jd-9NfX7fygj3rF55Alsl1d-SMcZW8s0fW12Dokel_gSkdIRV1Jcz_6ag5eyuhM-l1Rrp8yD3hoa7DxD=w60-h60-l90-rj",
+          "duration": "3:08"
+        }
+      ],
+      "likes": [
+        {
+          "videoId": "GzExS7WybJg",
+          "title": "Vem Vem",
+          "artist": "Jmilton",
+          "thumbnail": "https://lh3.googleusercontent.com/Iek5L4PT209SiUNf5nA2JaV0mJSbnFi8G_YUGmueWQlHscZ5mMGSDwKCkwcdYQmjmlJ1MYJUYejMQfpO=w544-h544-l90-rj",
+          "duration": "1:24"
+        }
+      ]
+    },
+    "Fizzy": {
+      "history": [],
+      "likes": []
+    }
+  }
+}

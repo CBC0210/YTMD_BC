@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -34,14 +34,20 @@ import {
   SkipForward,
   Volume2,
   Heart,
+  Trash,
+  RefreshCw,
+  X,
 } from "lucide-react";
+import { api } from "./lib/api";
 
 interface Song {
-  id: string;
+  id: string; // for UI list keys; for API items this can be videoId
   title: string;
   artist: string;
   album?: string;
   duration?: string;
+  videoId?: string;
+  thumbnail?: string;
 }
 
 interface QueueItem extends Song {
@@ -78,10 +84,22 @@ export default function App() {
   const [nicknameInput, setNicknameInput] = useState("");
   const [selectedSong, setSelectedSong] =
     useState<QueueItem | null>(null);
+  const [selectedHistory, setSelectedHistory] =
+    useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [currentTime, setCurrentTime] = useState(95); // in seconds
+  const [currentTime, setCurrentTime] = useState(0); // seconds
   const [volume, setVolume] = useState(75);
+  const [songDuration, setSongDuration] = useState(0);
+  const currentVideoIdRef = useRef<string | null>(null);
   const [likedSongs, setLikedSongs] = useState<Song[]>([]);
+  const [history, setHistory] = useState<Song[]>([]);
+  const [reco, setReco] = useState<Song[]>([]);
+  const [recoLoading, setRecoLoading] = useState(false);
+  const lastVolChangeAt = useRef<number>(0);
+  const queueTickRef = useRef<number>(0);
+  // 防呆：加入佇列時的鎖與提示
+  const [adding, setAdding] = useState<Set<string>>(new Set());
+  const [infoMsg, setInfoMsg] = useState<string>("");
 
   // Mock data for search results
   const mockSearchResults: Song[] = [
@@ -206,48 +224,181 @@ export default function App() {
     },
   ];
 
-  const handleSearch = (query: string) => {
-    if (query.trim()) {
-      const searchTerm = query.toLowerCase();
-      setSearchResults(
-        mockSearchResults.filter(
-          (song) =>
-            song.title.toLowerCase().includes(searchTerm) ||
-            song.artist.toLowerCase().includes(searchTerm) ||
-            (song.album &&
-              song.album.toLowerCase().includes(searchTerm)),
-        ),
-      );
-    } else {
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
       setSearchResults([]);
+      searchAbortRef.current?.abort();
+      return;
+    }
+    searchAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    searchAbortRef.current = ctrl;
+    try {
+      const res = await fetch("/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q: query }),
+        signal: ctrl.signal,
+      });
+      if (!ctrl.signal.aborted && res.ok) {
+        const data = await res.json();
+        const mapped: Song[] = (data || []).map((s: any) => ({
+          id: s.videoId,
+          videoId: s.videoId,
+          title: s.title,
+          artist: (s.artists && s.artists[0]) || "",
+          album: s.album,
+          duration: s.duration,
+          thumbnail: s.thumbnails?.[0]?.url,
+        }));
+        setSearchResults(mapped);
+      }
+    } catch (e) {
+      if (!ctrl.signal.aborted) setSearchResults([]);
     }
   };
 
-  const addToQueue = (song: Song) => {
-    const newQueueItem: QueueItem = {
-      ...song,
-      status: "queued",
-      queuePosition: playQueue.length + 1,
-    };
-    setPlayQueue([...playQueue, newQueueItem]);
+  const clearSearch = () => {
+    searchAbortRef.current?.abort();
+    setSearchQuery("");
+    setSearchResults([]);
   };
 
-  const removeFromQueue = (songId: string) => {
-    setPlayQueue((prev) =>
-      prev
-        .filter((item) => item.id !== songId)
-        .map((item, index) => ({
-          ...item,
-          queuePosition: index + 1,
-        })),
-    );
+  const refreshRecommendations = async () => {
+    if (!nickname) return;
+    setRecoLoading(true);
+    try {
+      const r = await api.user.recommendations(nickname);
+      setReco((r || []).map((s: any) => ({
+        id: s.videoId,
+        videoId: s.videoId,
+        title: s.title,
+        artist: s.artist,
+        duration: s.duration,
+        thumbnail: s.thumbnail,
+      })));
+    } catch {}
+    setRecoLoading(false);
+  };
+
+  const addToQueue = async (song: Song) => {
+    try {
+      const sid = song.videoId || song.id;
+      // 若此歌曲已在加入中，阻止重複點擊
+      if (sid && adding.has(sid)) return;
+      // 設定加入中狀態並顯示提示
+      if (sid) setAdding((prev) => new Set(prev).add(sid));
+      setInfoMsg("已送出加入佇列，請稍候…");
+      const clearInfo = setTimeout(() => setInfoMsg(""), 2500);
+
+      await api.enqueue(
+        {
+          videoId: song.videoId || song.id,
+          title: song.title,
+          artist: song.artist,
+          duration: song.duration,
+          thumbnail: song.thumbnail,
+        },
+        nickname || undefined,
+      );
+      // refresh queue after enqueue
+      const q = await api.queue();
+      setPlayQueue(
+        q.map((it) => ({
+          id: `${it.videoId}-${it.index}`,
+          title: it.title,
+          artist: it.artist,
+          duration: it.duration,
+          videoId: it.videoId,
+          thumbnail: it.thumbnail,
+          // UI-only fields for compatibility
+          status: "queued",
+          queuePosition: it.index,
+        })) as any,
+      );
+      // refresh user history and recommendations immediately
+  if (nickname) {
+        try {
+          const [hist, rec] = await Promise.all([
+            api.user.history(nickname),
+            api.user.recommendations(nickname),
+          ]);
+          setHistory((hist || []).map((x: any) => ({
+            id: x.videoId,
+            videoId: x.videoId,
+            title: x.title,
+            artist: x.artist,
+            duration: x.duration,
+            thumbnail: x.thumbnail,
+          })));
+          setReco((rec || []).map((s: any) => ({
+            id: s.videoId,
+            videoId: s.videoId,
+            title: s.title,
+            artist: s.artist,
+            duration: s.duration,
+            thumbnail: s.thumbnail,
+          })));
+        } catch {}
+      }
+    } catch {}
+    finally {
+      const sid = song.videoId || song.id;
+      if (sid) setAdding((prev) => { const s = new Set(prev); s.delete(sid); return s; });
+    }
+  };
+
+  const removeFromQueue = async (songId: string) => {
+    // songId is "videoId-index"; extract index suffix if present
+    const idx = Number((songId.split('-').pop() as string) || '0');
+    try {
+      await api.queueDelete(idx);
+      const q = await api.queue();
+      setPlayQueue(
+        q.map((it) => ({
+          id: `${it.videoId}-${it.index}`,
+          title: it.title,
+          artist: it.artist,
+          duration: it.duration,
+          videoId: it.videoId,
+          thumbnail: it.thumbnail,
+          status: "queued",
+          queuePosition: it.index,
+        })) as any,
+      );
+    } catch {}
     setSelectedSong(null);
   };
 
-  const clearQueue = () => {
-    setPlayQueue((prev) =>
-      prev.filter((item) => item.status === "playing"),
-    );
+  const clearQueue = async () => {
+    try {
+      // 取得目前播放的 videoId 與最新佇列
+      const cs = await api.currentSong();
+      const q = await api.queue();
+      const playingVid = cs.videoId;
+      // 找出所有非正在播放的索引，倒序刪除避免位移
+      const targets = q
+        .filter((it) => it.videoId !== playingVid)
+        .map((it) => it.index)
+        .sort((a, b) => b - a);
+      for (const idx of targets) {
+        try { await api.queueDelete(idx); } catch {}
+      }
+      const q2 = await api.queue();
+      setPlayQueue(
+        q2.map((it) => ({
+          id: `${it.videoId}-${it.index}`,
+          title: it.title,
+          artist: it.artist,
+          duration: it.duration,
+          videoId: it.videoId,
+          thumbnail: it.thumbnail,
+          status: "queued",
+          queuePosition: it.index,
+        })) as any,
+      );
+    } catch {}
   };
 
   const handleSongClick = (song: QueueItem) => {
@@ -255,54 +406,90 @@ export default function App() {
   };
 
   const handleNicknameConfirm = () => {
-    setNickname(nicknameInput.trim());
+    const n = nicknameInput.trim();
+    setNickname(n);
+    localStorage.setItem("ytmd_nickname", n);
+    // 載入使用者資料
+    if (n) {
+      (async () => {
+        try {
+          const [hist, likes] = await Promise.all([
+            api.user.history(n),
+            api.user.likes(n),
+          ]);
+          setHistory((hist || []).map((x: any) => ({
+            id: x.videoId,
+            videoId: x.videoId,
+            title: x.title,
+            artist: x.artist,
+            duration: x.duration,
+            thumbnail: x.thumbnail,
+          })));
+          setLikedSongs((likes || []).map((x: any) => ({
+            id: x.videoId,
+            videoId: x.videoId,
+            title: x.title,
+            artist: x.artist,
+            duration: x.duration,
+            thumbnail: x.thumbnail,
+          })));
+          // 載入推薦
+          try {
+            const r = await api.user.recommendations(n);
+            setReco((r || []).map((s: any) => ({
+              id: s.videoId,
+              videoId: s.videoId,
+              title: s.title,
+              artist: s.artist,
+              duration: s.duration,
+              thumbnail: s.thumbnail,
+            })));
+          } catch {}
+        } catch {}
+      })();
+    }
   };
 
   const handleNicknameClear = () => {
     setNickname("");
     setNicknameInput("");
+    localStorage.removeItem("ytmd_nickname");
+  setHistory([]);
+  setLikedSongs([]);
   };
 
   const getCurrentSong = () => {
-    return playQueue.find((song) => song.status === "playing");
+  return playQueue.find((song) => song.videoId === currentVideoIdRef.current);
   };
 
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
+  const togglePlayPause = async () => {
+    try {
+      await api.control("toggle-play");
+      const cs = await api.currentSong();
+      setIsPlaying(!cs.isPaused);
+    } catch {}
   };
 
-  const playNext = () => {
-    const currentIndex = playQueue.findIndex(
-      (song) => song.status === "playing",
-    );
-    if (currentIndex < playQueue.length - 1) {
-      const newQueue = playQueue.map((song, index) => ({
-        ...song,
-        status:
-          index === currentIndex + 1
-            ? ("playing" as const)
-            : ("queued" as const),
-      }));
-      setPlayQueue(newQueue);
+  const playNext = async () => {
+    try {
+      await api.control("next");
       setCurrentTime(0);
-    }
+      const cs = await api.currentSong();
+      currentVideoIdRef.current = cs.videoId;
+      setIsPlaying(!cs.isPaused);
+      setSongDuration(cs.songDuration || 0);
+    } catch {}
   };
 
-  const playPrevious = () => {
-    const currentIndex = playQueue.findIndex(
-      (song) => song.status === "playing",
-    );
-    if (currentIndex > 0) {
-      const newQueue = playQueue.map((song, index) => ({
-        ...song,
-        status:
-          index === currentIndex - 1
-            ? ("playing" as const)
-            : ("queued" as const),
-      }));
-      setPlayQueue(newQueue);
+  const playPrevious = async () => {
+    try {
+      await api.control("previous");
       setCurrentTime(0);
-    }
+      const cs = await api.currentSong();
+      currentVideoIdRef.current = cs.videoId;
+      setIsPlaying(!cs.isPaused);
+      setSongDuration(cs.songDuration || 0);
+    } catch {}
   };
 
   const formatTime = (seconds: number) => {
@@ -317,19 +504,171 @@ export default function App() {
   };
 
   const toggleLike = (song: Song) => {
-    setLikedSongs(prev => {
-      const isLiked = prev.some(likedSong => likedSong.id === song.id);
+    if (!nickname) return;
+    setLikedSongs((prev) => {
+      const isLiked = prev.some((likedSong) => likedSong.id === song.id);
       if (isLiked) {
-        return prev.filter(likedSong => likedSong.id !== song.id);
+        // unlike
+        api.user.unlike(nickname, song.videoId || song.id).catch(() => {});
+        return prev.filter((likedSong) => likedSong.id !== song.id);
       } else {
-        return [...prev, song];
+        // like
+        api.user
+          .like(nickname, {
+            videoId: song.videoId || song.id,
+            title: song.title,
+            artist: song.artist,
+            duration: song.duration,
+            thumbnail: song.thumbnail,
+          })
+          .catch(() => {});
+        return [
+          ...prev,
+          {
+            ...song,
+            id: song.videoId || song.id,
+            videoId: song.videoId || song.id,
+          },
+        ];
       }
     });
   };
 
-  const isLiked = (songId: string) => {
-    return likedSongs.some(song => song.id === songId);
+  const isLiked = (videoId?: string | null) => {
+    if (!videoId) return false;
+    return likedSongs.some(song => (song.videoId || song.id) === videoId);
   };
+
+  // init from backend
+  React.useEffect(() => {
+    const saved = localStorage.getItem("ytmd_nickname") || "";
+    setNickname(saved);
+    setNicknameInput(saved);
+    (async () => {
+      try {
+        const q = await api.queue();
+        setPlayQueue(
+          q.map((it) => ({
+            id: `${it.videoId}-${it.index}`,
+            title: it.title,
+            artist: it.artist,
+            duration: it.duration,
+            videoId: it.videoId,
+            thumbnail: it.thumbnail,
+            status: "queued",
+            queuePosition: it.index,
+          })) as any,
+        );
+        const cs = await api.currentSong();
+        currentVideoIdRef.current = cs.videoId;
+        setIsPlaying(!cs.isPaused);
+        setCurrentTime(cs.elapsedSeconds || 0);
+        setSongDuration(cs.songDuration || 0);
+        const v = await api.volume.get();
+        setVolume(v.state);
+        if (saved) {
+          const [hist, likes] = await Promise.all([
+            api.user.history(saved),
+            api.user.likes(saved),
+          ]);
+          setHistory((hist || []).map((x: any) => ({
+            id: x.videoId,
+            videoId: x.videoId,
+            title: x.title,
+            artist: x.artist,
+            duration: x.duration,
+            thumbnail: x.thumbnail,
+          })));
+          setLikedSongs((likes || []).map((x: any) => ({
+            id: x.videoId,
+            videoId: x.videoId,
+            title: x.title,
+            artist: x.artist,
+            duration: x.duration,
+            thumbnail: x.thumbnail,
+          })));
+          try {
+            const r = await api.user.recommendations(saved);
+            setReco((r || []).map((s: any) => ({
+              id: s.videoId,
+              videoId: s.videoId,
+              title: s.title,
+              artist: s.artist,
+              duration: s.duration,
+              thumbnail: s.thumbnail,
+            })));
+          } catch {}
+        }
+      } catch {}
+    })();
+  }, []);
+
+  // 每秒同步：當前歌曲時間、播放狀態，並在 700ms 內未本地調整時同步音量；若歌曲變更則刷新佇列
+  useEffect(() => {
+    let mounted = true;
+    let prevVid: string | null = null;
+    const timer = setInterval(async () => {
+      try {
+        const cs = await api.currentSong();
+        if (!mounted) return;
+        const vid = cs.videoId || null;
+        if (vid !== currentVideoIdRef.current) {
+          currentVideoIdRef.current = vid;
+        }
+        setIsPlaying(!cs.isPaused);
+        setCurrentTime(Math.max(0, Math.round(cs.elapsedSeconds || 0)));
+        setSongDuration(cs.songDuration || 0);
+        if (prevVid !== vid) {
+          prevVid = vid;
+          // 歌曲切換時刷新佇列
+          const q = await api.queue();
+          if (!mounted) return;
+          setPlayQueue(
+            q.map((it) => ({
+              id: `${it.videoId}-${it.index}`,
+              title: it.title,
+              artist: it.artist,
+              duration: it.duration,
+              videoId: it.videoId,
+              thumbnail: it.thumbnail,
+              status: "queued",
+              queuePosition: it.index,
+            })) as any,
+          );
+        }
+        // 每 4 秒同步一次佇列（即使歌曲未變更），避免多人操作時不同步
+        queueTickRef.current = (queueTickRef.current + 1) % 4;
+        if (queueTickRef.current === 0) {
+          try {
+            const q = await api.queue();
+            if (!mounted) return;
+            setPlayQueue(
+              q.map((it) => ({
+                id: `${it.videoId}-${it.index}`,
+                title: it.title,
+                artist: it.artist,
+                duration: it.duration,
+                videoId: it.videoId,
+                thumbnail: it.thumbnail,
+                status: "queued",
+                queuePosition: it.index,
+              })) as any,
+            );
+          } catch {}
+        }
+        // 音量：若 700ms 內沒有本地調整，才拉取伺服器值
+        if (Date.now() - lastVolChangeAt.current > 700) {
+          const v = await api.volume.get();
+          if (!mounted) return;
+          if (typeof v.state === "number") setVolume(v.state);
+        }
+      } catch {}
+    }, 1000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 dark">
@@ -337,49 +676,47 @@ export default function App() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            音樂點播系統
+            YTMD點歌系統
           </h1>
-          <p className="text-gray-400">享受您的音樂時光</p>
+          <p className="text-gray-400">由 CBC 修改開發</p>
         </div>
 
         {/* Now Playing Section */}
         {getCurrentSong() && (
           <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle>正在播放</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Song Info */}
-              <div className="text-center">
-                <h3 className="text-lg font-medium">
-                  {getCurrentSong()?.title}
-                </h3>
-                <p className="text-gray-400">
-                  {getCurrentSong()?.artist}
-                </p>
+            <CardContent className="space-y-4 pt-4">
+              {/* Song Info with thumbnail (stacked) */}
+              <div className="flex flex-col items-center gap-3 text-center">
+                {getCurrentSong()?.thumbnail && (
+                  <img src={getCurrentSong()!.thumbnail} alt="thumb" className="w-16 h-16 md:w-20 md:h-20 object-cover rounded" />
+                )}
+                <div className="text-center">
+                  <h3 className="text-lg font-medium">{getCurrentSong()?.title}</h3>
+                  <p className="text-gray-400">{getCurrentSong()?.artist}</p>
+                </div>
               </div>
 
               {/* Progress Bar */}
               <div className="space-y-2">
                 <Slider
                   value={[currentTime]}
-                  onValueChange={(value) =>
-                    setCurrentTime(value[0])
-                  }
-                  max={
-                    getCurrentSong()?.duration
-                      ? parseDuration(
-                          getCurrentSong()!.duration!,
-                        )
-                      : 225
-                  }
+                  onValueChange={(value) => setCurrentTime(value[0])}
+                  onValueCommit={async (value) => {
+                    try { await api.seek(value[0]); } catch {}
+                  }}
+                  max={songDuration || (getCurrentSong()?.duration ? parseDuration(getCurrentSong()!.duration!) : 225)}
                   step={1}
                   className="w-full"
                 />
                 <div className="flex justify-between text-sm text-gray-400">
                   <span>{formatTime(currentTime)}</span>
                   <span>
-                    {getCurrentSong()?.duration || "3:45"}
+                    {formatTime(
+                      songDuration ||
+                        (getCurrentSong()?.duration
+                          ? parseDuration(getCurrentSong()!.duration!)
+                          : 0)
+                    )}
                   </span>
                 </div>
               </div>
@@ -431,16 +768,17 @@ export default function App() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => getCurrentSong() && toggleLike(getCurrentSong()!)}
+                  onClick={() => getCurrentSong() && nickname && toggleLike(getCurrentSong()!)}
+                  disabled={!nickname}
                   className={`border-gray-600 hover:bg-gray-700 ${
-                    getCurrentSong() && isLiked(getCurrentSong()!.id)
+                    getCurrentSong() && isLiked(getCurrentSong()!.videoId)
                       ? 'text-red-500 hover:text-red-400'
                       : 'text-gray-300 hover:text-red-400'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <Heart
                     className={`w-4 h-4 ${
-                      getCurrentSong() && isLiked(getCurrentSong()!.id) ? 'fill-current' : ''
+                      getCurrentSong() && isLiked(getCurrentSong()!.videoId) ? 'fill-current' : ''
                     }`}
                   />
                 </Button>
@@ -451,7 +789,11 @@ export default function App() {
                 <Volume2 className="w-4 h-4 text-gray-400" />
                 <Slider
                   value={[volume]}
-                  onValueChange={(value) => setVolume(value[0])}
+                  onValueChange={(value) => {
+                    setVolume(value[0]);
+                    lastVolChangeAt.current = Date.now();
+                    api.volume.set(value[0]).catch(() => {});
+                  }}
                   max={100}
                   step={1}
                   className="flex-1"
@@ -469,19 +811,30 @@ export default function App() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="w-5 h-5" />
-              搜尋音樂
+              搜尋
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Input
-              placeholder="輸入歌曲名稱或歌手..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                handleSearch(e.target.value);
-              }}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-            />
+            <div className="flex gap-3">
+              <Input
+                placeholder="輸入歌曲名稱或歌手..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  handleSearch(e.target.value);
+                }}
+                className="flex-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearSearch}
+                disabled={!searchQuery.trim()}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+              >
+                <X className="w-4 h-4 mr-1" />清除
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -492,13 +845,20 @@ export default function App() {
               <CardTitle>搜尋結果</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {infoMsg && (
+                <div className="text-xs text-gray-400">{infoMsg}</div>
+              )}
               {searchResults.length > 0 ? (
                 searchResults.map((song) => (
                   <div
                     key={song.id}
                     className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
                   >
-                    <div className="flex-1">
+                    <div className="flex items-center gap-3 flex-1">
+                      {song.thumbnail && (
+                        <img src={song.thumbnail} alt="thumb" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      <div className="flex-1">
                       <h4 className="font-medium">
                         {song.title}
                       </h4>
@@ -506,15 +866,17 @@ export default function App() {
                         {song.artist} • {song.album} •{" "}
                         {song.duration}
                       </p>
+                      </div>
                     </div>
                     <Button
                       size="sm"
                       onClick={() => addToQueue(song)}
+                      disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
                       style={{ backgroundColor: "#e74c3c" }}
-                      className="hover:opacity-80"
+                      className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-4 h-4 mr-1" />
-                      加入佇列
+                      {((song.videoId || song.id) && adding.has(song.videoId || song.id)) ? '加入中…' : '加入'}
                     </Button>
                   </div>
                 ))
@@ -540,6 +902,7 @@ export default function App() {
               <User className="w-5 h-5" />
               使用者設定
             </CardTitle>
+            <p className="text-xs text-gray-400 mt-1">只要輸入你的暱稱就能記錄歷史與喜歡</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -594,7 +957,10 @@ export default function App() {
             {/* Play Queue */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>播放佇列</CardTitle>
+                <div>
+                  <CardTitle>播放清單</CardTitle>
+                  <p className="text-xs text-gray-400 mt-1">小提示：點擊曲目可刪除，但正在播放的不能刪。</p>
+                </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -602,29 +968,24 @@ export default function App() {
                       size="sm"
                       className="border-gray-600 text-gray-300 hover:bg-gray-700"
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      清除佇列
+                      清除全部
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-gray-800 border-gray-700">
                     <AlertDialogHeader>
-                      <AlertDialogTitle className="text-white">
-                        確認清除佇列
-                      </AlertDialogTitle>
+                      <AlertDialogTitle className="text-white">清除佇列</AlertDialogTitle>
                       <AlertDialogDescription className="text-gray-400">
-                        這將刪除除了目前播放歌曲之外的所有歌曲。此操作無法復原。
+                        這將刪除所有非正在播放的歌曲，確定要繼續嗎？
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
-                        取消
-                      </AlertDialogCancel>
+                      <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">取消</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={clearQueue}
+                        onClick={() => clearQueue()}
                         style={{ backgroundColor: "#e74c3c" }}
                         className="hover:opacity-80"
                       >
-                        確認清除
+                        清除
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -634,12 +995,15 @@ export default function App() {
                 {playQueue.map((song) => (
                   <div
                     key={song.id}
-                    className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
-                    onClick={() => handleSongClick(song)}
+                    className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg transition-colors"
+                    onClick={() => {
+                      if (song.videoId !== currentVideoIdRef.current) handleSongClick(song as any);
+                    }}
                   >
-                    <span className="text-gray-400 text-sm w-8">
-                      {song.queuePosition}
-                    </span>
+                    <span className="text-gray-400 text-sm w-8">{song.queuePosition}</span>
+                    {song.thumbnail && (
+                      <img src={song.thumbnail} alt="thumb" className="w-12 h-12 object-cover rounded" />
+                    )}
                     <div className="flex-1">
                       <h4 className="font-medium">
                         {song.title}
@@ -648,22 +1012,9 @@ export default function App() {
                         {song.artist}
                       </p>
                     </div>
-                    <Badge
-                      variant={
-                        song.status === "playing"
-                          ? "default"
-                          : "secondary"
-                      }
-                      style={
-                        song.status === "playing"
-                          ? { backgroundColor: "#e74c3c" }
-                          : {}
-                      }
-                    >
-                      {song.status === "playing"
-                        ? "播放中"
-                        : "等待中"}
-                    </Badge>
+                    {song.videoId === currentVideoIdRef.current && (
+                      <Badge style={{ backgroundColor: "#e74c3c" }}>播放中</Badge>
+                    )}
                   </div>
                 ))}
               </CardContent>
@@ -673,35 +1024,85 @@ export default function App() {
             {nickname && (
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 justify-between">
                     <Clock className="w-5 h-5" />
-                    歷史記錄
+                    <span>歷史記錄</span>
+                    <span>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          >
+                            清除歷史
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-gray-800 border-gray-700">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">清除歷史記錄</AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-400">
+                              這將刪除您所有的點歌歷史，確定要繼續嗎？
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">取消</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                if (!nickname) return;
+                                try {
+                                  await api.user.clearHistory(nickname);
+                                  setHistory([]);
+                                } catch {}
+                              }}
+                              style={{ backgroundColor: "#e74c3c" }}
+                              className="hover:opacity-80"
+                            >
+                              清除
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </span>
                   </CardTitle>
+                  <p className="text-xs text-gray-400 mt-1">小提示：點擊曲目可刪除。</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {historyData.map((song) => (
+                  {infoMsg && (
+                    <div className="text-xs text-gray-400">{infoMsg}</div>
+                  )}
+                  {history.length === 0 && (
+                    <div className="text-gray-400 text-sm">目前沒有歷史記錄</div>
+                  )}
+                  {history.map((song) => (
                     <div
                       key={song.id}
-                      className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-gray-700 rounded-lg cursor-pointer"
+                      onClick={() => setSelectedHistory(song as any)}
                     >
-                      <div className="flex-1">
-                        <h4 className="font-medium">
-                          {song.title}
-                        </h4>
-                        <p className="text-gray-400 text-sm">
-                          {song.artist} • {song.album} •{" "}
-                          {song.duration}
-                        </p>
+                      <div className="flex items-center gap-3 flex-1">
+                        {song.thumbnail && (
+                          <img src={song.thumbnail} alt="thumb" className="w-10 h-10 object-cover rounded" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-medium">{song.title}</h4>
+                          <p className="text-gray-400 text-sm">
+                            {song.artist}{song.album ? ` • ${song.album}` : ''}{song.duration ? ` • ${song.duration}` : ''}
+                          </p>
+                        </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => addToQueue(song)}
-                        style={{ backgroundColor: "#e74c3c" }}
-                        className="hover:opacity-80"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        加入佇列
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); addToQueue(song); }}
+                          disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
+                          style={{ backgroundColor: "#e74c3c" }}
+                          className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          {((song.videoId || song.id) && adding.has(song.videoId || song.id)) ? '加入中…' : '加入'}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </CardContent>
@@ -721,19 +1122,24 @@ export default function App() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {infoMsg && (
+                    <div className="text-xs text-gray-400">{infoMsg}</div>
+                  )}
                   {likedSongs.map((song) => (
                     <div
                       key={song.id}
                       className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
                     >
-                      <div className="flex-1">
-                        <h4 className="font-medium">
-                          {song.title}
-                        </h4>
-                        <p className="text-gray-400 text-sm">
-                          {song.artist} • {song.album} •{" "}
-                          {song.duration}
-                        </p>
+                      <div className="flex items-center gap-3 flex-1">
+                        {song.thumbnail && (
+                          <img src={song.thumbnail} alt="thumb" className="w-10 h-10 object-cover rounded" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-medium">{song.title}</h4>
+                          <p className="text-gray-400 text-sm">
+                            {song.artist}{song.album ? ` • ${song.album}` : ''}{song.duration ? ` • ${song.duration}` : ''}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -747,11 +1153,12 @@ export default function App() {
                         <Button
                           size="sm"
                           onClick={() => addToQueue(song)}
+                          disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
                           style={{ backgroundColor: "#e74c3c" }}
-                          className="hover:opacity-80"
+                          className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Plus className="w-4 h-4 mr-1" />
-                          加入佇列
+                          {((song.videoId || song.id) && adding.has(song.videoId || song.id)) ? '加入中…' : '加入'}
                         </Button>
                       </div>
                     </div>
@@ -763,38 +1170,59 @@ export default function App() {
             {/* Recommendations - Only show if nickname is provided */}
             {nickname && (
               <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="w-5 h-5" />
-                    推薦歌曲
-                  </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="w-5 h-5" />
+                      推薦歌曲
+                    </CardTitle>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={refreshRecommendations}
+                    disabled={!nickname || recoLoading}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-1 ${recoLoading ? 'animate-spin' : ''}`} />
+                    刷新
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {recommendationsData.map((song) => (
+                  {infoMsg && (
+                    <div className="text-xs text-gray-400">{infoMsg}</div>
+                  )}
+                  {reco.map((song) => (
                     <div
                       key={song.id}
                       className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
                     >
-                      <div className="flex-1">
-                        <h4 className="font-medium">
-                          {song.title}
-                        </h4>
-                        <p className="text-gray-400 text-sm">
-                          {song.artist} • {song.album} •{" "}
-                          {song.duration}
-                        </p>
+                      <div className="flex items-center gap-3 flex-1">
+                        {song.thumbnail && (
+                          <img src={song.thumbnail} alt="thumb" className="w-10 h-10 object-cover rounded" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-medium">{song.title}</h4>
+                          <p className="text-gray-400 text-sm">
+                            {song.artist}{song.album ? ` • ${song.album}` : ''}{song.duration ? ` • ${song.duration}` : ''}
+                          </p>
+                        </div>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => addToQueue(song)}
+                        disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
                         style={{ backgroundColor: "#e74c3c" }}
-                        className="hover:opacity-80"
+                        className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        加入佇列
+                        {((song.videoId || song.id) && adding.has(song.videoId || song.id)) ? '加入中…' : '加入'}
                       </Button>
                     </div>
                   ))}
+                  {reco.length === 0 && (
+                    <div className="text-gray-400 text-sm">尚無推薦，請先點幾首歌試試。</div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -802,9 +1230,12 @@ export default function App() {
         </div>
 
         {/* Delete Song Dialog */}
+        {/* Delete Song from Queue Dialog */}
         <AlertDialog
           open={!!selectedSong}
-          onOpenChange={() => setSelectedSong(null)}
+          onOpenChange={(open) => {
+            if (!open) setSelectedSong(null);
+          }}
         >
           <AlertDialogContent className="bg-gray-800 border-gray-700">
             <AlertDialogHeader>
@@ -835,6 +1266,62 @@ export default function App() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Delete History Item Dialog */}
+        <AlertDialog
+          open={!!selectedHistory}
+          onOpenChange={(open) => {
+            if (!open) setSelectedHistory(null);
+          }}
+        >
+          <AlertDialogContent className="bg-gray-800 border-gray-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">
+                刪除歷史項目
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-400">
+                您要刪除「{selectedHistory?.title}」這筆歷史記錄嗎？
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => setSelectedHistory(null)}
+                className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              >
+                取消
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (!nickname || !selectedHistory) return;
+                  try {
+                    await api.user.removeHistoryItem(nickname, selectedHistory.videoId || selectedHistory.id);
+                    setHistory((prev) => prev.filter((s) => s.id !== (selectedHistory.videoId || selectedHistory.id)));
+                  } catch {}
+                  setSelectedHistory(null);
+                }}
+                style={{ backgroundColor: "#e74c3c" }}
+                className="hover:opacity-80"
+              >
+                刪除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Footer Credit */}
+        <footer className="text-center text-gray-500 text-xs mt-8">
+          <p className="space-x-2">
+            <span>
+              基於 <a className="underline" href="https://github.com/th-ch/youtube-music" target="_blank" rel="noreferrer">YouTube Music Desktop App</a> 開發
+            </span>
+            <span>•</span>
+            <span>
+              點歌系統由 <strong className="text-gray-200">CBC</strong> 修改
+            </span>
+            <span>•</span>
+            <a className="underline" href="https://github.com/CBC0210/YTMD_BC" target="_blank" rel="noreferrer">查看原始碼</a>
+          </p>
+        </footer>
       </div>
     </div>
   );

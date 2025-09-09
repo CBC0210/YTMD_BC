@@ -6,6 +6,7 @@
   // Helpers to configure public dev access (ngrok, LAN)
   const NGROK_HOST = process.env.NGROK_HOST; // e.g., 76962366566f.ngrok-free.app
   const PORT = Number(process.env.VITE_PORT || process.env.PORT || 5173);
+  const BACKEND = process.env.VITE_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:8080';
   // In dev/public mode we allow all hosts to support ngrok and LAN access reliably
   const allowedHosts = true as const;
 
@@ -68,5 +69,19 @@
       hmr: NGROK_HOST
         ? { host: NGROK_HOST, clientPort: 443, protocol: 'wss' }
         : undefined,
+      proxy: {
+        // Proxy backend APIs in dev so relative fetch('/...') works from port 5173
+        '/health': { target: BACKEND, changeOrigin: true },
+        '/queue': { target: BACKEND, changeOrigin: true },
+        '/search': { target: BACKEND, changeOrigin: true },
+        '/enqueue': { target: BACKEND, changeOrigin: true },
+        '/current-song': { target: BACKEND, changeOrigin: true },
+        '/controls': { target: BACKEND, changeOrigin: true },
+  '/seek': { target: BACKEND, changeOrigin: true },
+        '/volume': { target: BACKEND, changeOrigin: true },
+        '/user': { target: BACKEND, changeOrigin: true },
+        '/config': { target: BACKEND, changeOrigin: true },
+        '/public-links': { target: BACKEND, changeOrigin: true },
+      },
     },
   });

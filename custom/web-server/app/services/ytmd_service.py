@@ -38,7 +38,7 @@ class YTMDService:
         simplified_queue = []
         
         if 'items' in raw_data and isinstance(raw_data['items'], list):
-            for item in raw_data['items']:
+            for idx, item in enumerate(raw_data['items']):
                 if 'playlistPanelVideoRenderer' in item:
                     renderer = item['playlistPanelVideoRenderer']
                     
@@ -66,15 +66,91 @@ class YTMDService:
                     if 'videoId' in renderer:
                         video_id = renderer['videoId']
                     
+                    # 縮圖
+                    thumb = ''
+                    try:
+                        # 嘗試從 renderer 中取得縮圖
+                        # 不同版本可能字段不同，盡量兼容
+                        if 'thumbnail' in renderer and 'thumbnails' in renderer['thumbnail']:
+                            t_list = renderer['thumbnail']['thumbnails']
+                            if isinstance(t_list, list) and len(t_list) > 0:
+                                thumb = t_list[-1].get('url', '')
+                    except Exception:
+                        pass
+                    if not thumb and video_id:
+                        # 後備: 根據 videoId 組裝 YouTube 縮圖
+                        thumb = f'https://i.ytimg.com/vi/{video_id}/hqdefault.jpg'
+
                     simplified_queue.append({
                         'title': title,
                         'artist': artist,
                         'duration': duration,
-                        'videoId': video_id
+                        'videoId': video_id,
+                        'index': idx,
+                        'thumbnail': thumb,
                     })
         
         logger.info(f"Parsed {len(simplified_queue)} songs from queue")
         return simplified_queue
+
+    def control(self, action: str) -> Tuple[bool, str]:
+        """控制播放：play/pause/next/previous/toggle-play"""
+        try:
+            if action not in ['play', 'pause', 'next', 'previous', 'toggle-play']:
+                return False, 'Unsupported action'
+            response = requests.post(f'{self.base_url}/{action}', timeout=self.timeout)
+            if response.status_code == 204:
+                return True, 'ok'
+            return False, f'YTMD API error: {response.status_code}'
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Control action failed: {e}")
+            return False, f'YTMD connection failed: {str(e)}'
+
+    def get_volume(self) -> Dict[str, Any]:
+        """取得音量狀態 { state: number, isMuted: boolean }"""
+        try:
+            response = requests.get(f'{self.base_url}/volume', timeout=self.timeout)
+            if response.status_code == 200:
+                return response.json()
+            return {'state': 0, 'isMuted': False}
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Get volume failed: {e}")
+            return {'state': 0, 'isMuted': False}
+
+    def set_volume(self, volume: int) -> Tuple[bool, str]:
+        """設定音量 (0-100)"""
+        try:
+            response = requests.post(f'{self.base_url}/volume', json={'volume': volume}, timeout=self.timeout)
+            if response.status_code == 204:
+                return True, 'ok'
+            return False, f'YTMD API error: {response.status_code}'
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Set volume failed: {e}")
+            return False, f'YTMD connection failed: {str(e)}'
+    
+    def seek_to(self, seconds: int) -> Tuple[bool, str]:
+        """
+        絕對時間跳轉到指定秒數
+        """
+        try:
+            response = requests.post(f'{self.base_url}/seek-to', json={'seconds': seconds}, timeout=self.timeout)
+            if response.status_code == 204:
+                return True, 'ok'
+            return False, f'YTMD API error: {response.status_code}'
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Seek failed: {e}")
+            return False, f'YTMD connection failed: {str(e)}'
+
+    def remove_queue_index(self, index: int) -> Tuple[bool, str]:
+        """刪除佇列中的指定索引"""
+        try:
+            response = requests.delete(f'{self.base_url}/queue/{index}', timeout=self.timeout)
+            if response.status_code == 204:
+                return True, 'ok'
+            return False, f'YTMD API error: {response.status_code}'
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Remove queue index failed: {e}")
+            return False, f'YTMD connection failed: {str(e)}'
     
     def enqueue_song(self, video_id: str) -> Tuple[bool, str]:
         """加入歌曲到佇列最後面"""
@@ -119,13 +195,25 @@ class YTMDService:
             if response.status_code == 200:
                 song_data = response.json()
                 # 簡化回傳格式，只包含我們需要的信息
+                vid = song_data.get('videoId', '')
+                # 嘗試取得縮圖，若無則用 videoId 組裝
+                thumb = ''
+                try:
+                    thumbs = song_data.get('thumbnails') or song_data.get('thumbnail')
+                    if isinstance(thumbs, list) and thumbs:
+                        thumb = thumbs[-1].get('url', '')
+                except Exception:
+                    pass
+                if not thumb and vid:
+                    thumb = f'https://i.ytimg.com/vi/{vid}/hqdefault.jpg'
                 return {
-                    'videoId': song_data.get('videoId', ''),
+                    'videoId': vid,
                     'title': song_data.get('title', ''),
                     'artist': song_data.get('artist', ''),
                     'isPaused': song_data.get('isPaused', True),
                     'elapsedSeconds': song_data.get('elapsedSeconds', 0),
-                    'songDuration': song_data.get('songDuration', 0)
+                    'songDuration': song_data.get('songDuration', 0),
+                    'thumbnail': thumb,
                 }
             elif response.status_code == 204:
                 # 沒有歌曲在播放
