@@ -35,6 +35,7 @@ FRONTEND_LOG=${FRONTEND_LOG:-/tmp/ytreq-frontend.log}
 AUTO_INSTALL_QRCODE=${AUTO_INSTALL_QRCODE:-1}
 FORCE_BACKEND_RESTART=${FORCE_BACKEND_RESTART:-0}
 FRONTEND_FORCE_RESTART_ON_404=${FRONTEND_FORCE_RESTART_ON_404:-1}
+QR_PREFER_LAN=${QR_PREFER_LAN:-0}          # 1=QR 使用區域網 IP，即使有 public URL
 
 # API Server (YTMD plugin) connectivity config; align with plugin menu (hostname/port)
 YTMD_HOSTNAME=${YTMD_HOSTNAME:-${YTMD_HOST:-localhost}}
@@ -50,6 +51,15 @@ export RENDERER_LOCAL_ONLY=1
 
 # -------------------- helpers --------------------
 log(){ echo "[public] $*"; }
+
+# parse flags (simple)
+for arg in "$@"; do
+  case "$arg" in
+    --qr-lan|--qr-local|--qr-use-lan)
+      QR_PREFER_LAN=1
+      ;;
+  esac
+done
 
 # Single-instance (PID file) to avoid multiple supervisors thrashing
 PID_FILE_MAIN="/tmp/ytmd-public.pid"
@@ -466,7 +476,13 @@ monitor_public_links &
 
 # -------------------- QR code --------------------
 QR_SCRIPT="$CUSTOM_DIR/launchers/utils/qr-generator.py"
-TARGET_URL="${frontend_url:-http://$LAN_IP:${FRONTEND_PORT}}"
+# 選擇 QR 目標：優先 public URL；若加上 --qr-lan 或 QR_PREFER_LAN=1，則強制使用區域網 IP
+if [ "$QR_PREFER_LAN" = "1" ]; then
+  TARGET_URL="http://$LAN_IP:${FRONTEND_PORT}"
+  log "QR 模式：使用區域網 IP ($TARGET_URL)"
+else
+  TARGET_URL="${frontend_url:-http://$LAN_IP:${FRONTEND_PORT}}"
+fi
 PYTHON_CANDIDATE="$WS_DIR/.venv/bin/python"
 if [ -x "$PYTHON_CANDIDATE" ]; then PYTHON_BIN="$PYTHON_CANDIDATE"; else PYTHON_BIN="$(command -v python3 || true)"; fi
 if [ -n "$PYTHON_BIN" ] && [ -f "$QR_SCRIPT" ]; then

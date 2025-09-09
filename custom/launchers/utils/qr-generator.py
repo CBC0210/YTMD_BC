@@ -50,4 +50,12 @@ if __name__ == "__main__":
     save_image = "--no-save" not in sys.argv
     
     print(f"🌐 點歌系統網址：{url}")
-    generate_qr_code(url, save_image)
+    ok = generate_qr_code(url, save_image)
+    # 顯示可點擊連結（大部分終端會自動偵測），同時提供 ANSI 超連結（支援的終端可直接點）
+    try:
+        ansi_link = f"\x1b]8;;{url}\x1b\\{url}\x1b]8;;\x1b\\"
+        print(f"\n🔗 直接點擊連結：{url}")
+        print(ansi_link)
+    except Exception:
+        pass
+    sys.exit(0 if ok else 1)

@@ -55,6 +55,110 @@ interface QueueItem extends Song {
   queuePosition: number;
 }
 
+type QueueRowProps = {
+  song: QueueItem;
+  isCurrent: boolean;
+  onDelete: (song: QueueItem) => void;
+  onClick: (song: QueueItem) => void;
+};
+
+const SwipeRow: React.FC<QueueRowProps> = ({ song, isCurrent, onDelete, onClick }) => {
+  const startX = React.useRef<number | null>(null);
+  const [dragX, setDragX] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const max = 80; // 最大左滑距離
+  const openOffset = 56; // 開啟時左移距離（與圖示按鈕寬度相近）
+  const threshold = 48; // 開啟刪除的閾值
+
+  const endDrag = () => {
+    if (!dragging) return;
+    setDragging(false);
+    if (dragX <= -threshold) {
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+    setDragX(0);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    setDragging(true);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startX.current == null) return;
+    const dx = e.touches[0].clientX - startX.current;
+    setDragX(Math.max(-max, Math.min(0, dx)));
+  };
+  const onTouchEnd = () => {
+    endDrag();
+    startX.current = null;
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    startX.current = e.clientX;
+    setDragging(true);
+  };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!dragging || startX.current == null || e.buttons === 0) return;
+    const dx = e.clientX - startX.current;
+    setDragX(Math.max(-max, Math.min(0, dx)));
+  };
+  const onMouseUp = () => {
+    endDrag();
+    startX.current = null;
+  };
+
+  const translate = dragging ? dragX : (open ? -openOffset : 0);
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* 背後的刪除按鈕區 */}
+      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pl-3">
+        <Button
+          onClick={(e) => { e.stopPropagation(); onDelete(song); setOpen(false); }}
+          disabled={isCurrent}
+          style={{ backgroundColor: "#e74c3c" }}
+          className="w-9 h-9 p-0 rounded-full flex items-center justify-center text-white hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="刪除"
+          title="刪除"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+      {/* 前景內容，可左右滑動 */}
+      <div
+        className="flex items-center gap-3 p-3 bg-gray-700 transition-transform select-none"
+        style={{ transform: `translateX(${translate}px)` }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onClick={() => {
+          if (dragging) return; // 拖動中不觸發 click
+          if (open) { setOpen(false); return; } // 已開啟則先關閉
+          onClick(song);
+        }}
+      >
+        <span className="text-gray-400 text-sm w-8">{song.queuePosition}</span>
+        {song.thumbnail && (
+          <img src={song.thumbnail} alt="thumb" className="w-12 h-12 object-cover rounded" />
+        )}
+        <div className="flex-1">
+          <h4 className="font-medium">{song.title}</h4>
+          <p className="text-gray-400 text-sm">{song.artist}</p>
+        </div>
+        {isCurrent && (
+          <Badge style={{ backgroundColor: "#e74c3c" }}>播放中</Badge>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Song[]>(
@@ -1003,7 +1107,7 @@ export default function App() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>播放清單</CardTitle>
-                  <p className="text-xs text-gray-400 mt-1">小提示：點擊曲目可刪除，但正在播放的不能刪。</p>
+                  <p className="text-xs text-gray-400 mt-1">小提示：左滑可刪除；點擊曲目可跳轉。正在播放的不能刪。</p>
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -1037,29 +1141,18 @@ export default function App() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {playQueue.map((song) => (
-                  <div
+                  <SwipeRow
                     key={song.id}
-                    className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg transition-colors"
-                    onClick={() => {
-                      if (song.videoId !== currentVideoIdRef.current) handleSongClick(song as any);
+                    song={song}
+                    isCurrent={song.videoId === currentVideoIdRef.current}
+                    onDelete={(s) => {
+                      if (s.videoId === currentVideoIdRef.current) return;
+                      removeFromQueue(s.id);
                     }}
-                  >
-                    <span className="text-gray-400 text-sm w-8">{song.queuePosition}</span>
-                    {song.thumbnail && (
-                      <img src={song.thumbnail} alt="thumb" className="w-12 h-12 object-cover rounded" />
-                    )}
-                    <div className="flex-1">
-                      <h4 className="font-medium">
-                        {song.title}
-                      </h4>
-                      <p className="text-gray-400 text-sm">
-                        {song.artist}
-                      </p>
-                    </div>
-                    {song.videoId === currentVideoIdRef.current && (
-                      <Badge style={{ backgroundColor: "#e74c3c" }}>播放中</Badge>
-                    )}
-                  </div>
+                    onClick={(s) => {
+                      if (s.videoId !== currentVideoIdRef.current) handleSongClick(s as any);
+                    }}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -1287,7 +1380,7 @@ export default function App() {
                 歌曲操作
               </AlertDialogTitle>
               <AlertDialogDescription className="text-gray-400">
-                要對「{selectedSong?.title}」做什麼？
+                是否跳轉到「{selectedSong?.title}」？
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1308,16 +1401,6 @@ export default function App() {
                 className="hover:opacity-80"
               >
                 跳轉
-              </AlertDialogAction>
-              <AlertDialogAction
-                onClick={() =>
-                  selectedSong &&
-                  removeFromQueue(selectedSong.id)
-                }
-                style={{ backgroundColor: "#e74c3c" }}
-                className="hover:opacity-80"
-              >
-                刪除
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
