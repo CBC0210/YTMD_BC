@@ -1,3 +1,72 @@
+<!--
+  YTMD_BC Fork Overview
+  本段為 CBC 客製化補充，說明本專案在 upstream 基礎上新增的「點歌系統」組件、目錄結構與啟動/配置方式。
+  詳細腳本說明請見 custom/scripts/README-start-public.md
+-->
+
+# YTMD_BC — 點歌系統（Fork 摘要）
+
+這是基於 th-ch/youtube-music 的 fork，新增了「點歌系統」：
+- 後端：Flask API（佇列、播放控制、音量、使用者歷史/喜歡/推薦）
+- 前端：React + Vite（搜尋/加入佇列、播放清單、歷史、喜歡、推薦）
+- 整合：啟動腳本可一鍵啟動後端、前端、公開隧道（預設 ngrok；可選 Cloudflare「命名隧道」），並在終端輸出 QR Code 與 public_links.json
+
+重點 UX（近期）：
+- 加入成功 Toast 顯示在頁面頂部（支援 safe-area）
+- 歷史記錄改為「點擊垃圾桶刪除」（不再使用左滑）
+
+## 專案結構（與本 Fork 相關部分）
+- `custom/web-server/`：Flask 服務與靜態服務
+  - `frontend/`：React + Vite 前端（有獨立 package.json）
+  - `app/public_links.json`：公開連結快取（由後端 `/public-links` 提供）
+- `custom/scripts/`
+  - `start-public.sh`：一鍵啟動（後端/前端/隧道/QR），支援設定檔
+  - `start-public.conf.sample`：設定範例（可複製為 `start-public.conf`）
+  - `README-start-public.md`：腳本完整說明（繁體中文）
+- `custom/start-dev.sh`：本地開發啟動（同時帶起 web server 與 Electron dev）
+
+## 快速開始
+開發模式（建議）
+```bash
+bash custom/start-dev.sh
+```
+
+公開模式（含 QR 與 public URL）
+```bash
+bash custom/scripts/start-public.sh
+```
+
+提示：公開模式預設使用 ngrok；若要使用 Cloudflare，請先設定「命名隧道」，並提供 `CF_TUNNEL_TOKEN` 或 `CF_TUNNEL_NAME` 及對應 hostname。
+
+## 設定檔與環境變數
+- 設定檔搜尋順序（擇一即可）：
+  1) `START_PUBLIC_CONFIG=/path/to/your.conf`
+  2) 專案根目錄：`.start-public.conf`
+  3) `custom/scripts/start-public.conf`
+  4) `$HOME/.config/ytmd-start-public.conf`
+- 常用變數（節錄）：
+  - 埠：`FRONTEND_PORT`（預設 5173）、`WEB_SERVER_PORT`（預設 8080）
+  - ngrok：`ENABLE_NGROK=1|0`（預設 1），`NGROK_REGION=jp`
+  - Cloudflare 命名隧道：`ENABLE_CLOUDFLARE=1` + `CF_TUNNEL_TOKEN` 或 `CF_TUNNEL_NAME`，以及 `CF_HOSTNAME_FRONTEND`、`CF_HOSTNAME_BACKEND`（或提供 `CF_TUNNEL_CONFIG` 讓腳本推斷）
+  - 其他：`ELECTRON_DEV=1|0`、`QR_PREFER_LAN=1|0`、`FRONTEND_MODE=auto|vite|static`
+
+更多使用方式與參數，請見 `custom/scripts/README-start-public.md`。
+
+## 前端/後端獨立開發
+- 前端（Vite）：
+  ```bash
+  (cd custom/web-server/frontend && pnpm install && pnpm dev)
+  # 打包：pnpm build
+  ```
+- 後端（Flask）：
+  ```bash
+  (cd custom/web-server && python3 web-server.py)
+  ```
+
+---
+
+以下為 upstream 原始說明文件（保留以利參考與升級）：
+
 <div align="center">
 
 # YouTube Music
