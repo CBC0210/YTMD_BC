@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2025-09-09T18:05:24+08:00",
+  "generatedAt": "2025-09-09T18:25:45+08:00",
   "frontend": {
     "local": "http://172.23.0.113:5173",
-      "public": "https://716348aa987e.ngrok-free.app"
+      "public": "https://0c9d461f7248.ngrok-free.app"
     },
     "backend": {
       "local": "http://172.23.0.113:8080",

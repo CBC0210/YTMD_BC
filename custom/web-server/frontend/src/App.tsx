@@ -371,6 +371,50 @@ export default function App() {
     setSelectedSong(null);
   };
 
+  const jumpToQueueItem = async (song: QueueItem) => {
+    // 計算目標與當前索引差距，透過多次 next/previous 跳轉
+    try {
+      const current = playQueue.find((s) => s.videoId === currentVideoIdRef.current);
+      const currentIdx = current?.queuePosition;
+      const targetIdx = song.queuePosition;
+      if (currentIdx === undefined || targetIdx === undefined) return;
+      let steps = targetIdx - currentIdx;
+      const maxSteps = Math.min(Math.abs(steps), 25); // 安全上限避免無限循環
+      for (let i = 0; i < maxSteps; i++) {
+        try {
+          if (steps > 0) {
+            await api.control("next");
+          } else if (steps < 0) {
+            await api.control("previous");
+          }
+        } catch {}
+      }
+      // 更新當前歌曲與佇列
+      try {
+        const cs = await api.currentSong();
+        currentVideoIdRef.current = cs.videoId;
+        setIsPlaying(!cs.isPaused);
+        setCurrentTime(cs.elapsedSeconds || 0);
+        setSongDuration(cs.songDuration || 0);
+      } catch {}
+      try {
+        const q = await api.queue();
+        setPlayQueue(
+          q.map((it) => ({
+            id: `${it.videoId}-${it.index}`,
+            title: it.title,
+            artist: it.artist,
+            duration: it.duration,
+            videoId: it.videoId,
+            thumbnail: it.thumbnail,
+            status: "queued",
+            queuePosition: it.index,
+          })) as any,
+        );
+      } catch {}
+    } catch {}
+  };
+
   const clearQueue = async () => {
     try {
       // 取得目前播放的 videoId 與最新佇列
@@ -1231,7 +1275,7 @@ export default function App() {
 
         {/* Delete Song Dialog */}
         {/* Delete Song from Queue Dialog */}
-        <AlertDialog
+  <AlertDialog
           open={!!selectedSong}
           onOpenChange={(open) => {
             if (!open) setSelectedSong(null);
@@ -1240,10 +1284,10 @@ export default function App() {
           <AlertDialogContent className="bg-gray-800 border-gray-700">
             <AlertDialogHeader>
               <AlertDialogTitle className="text-white">
-                刪除歌曲
+                歌曲操作
               </AlertDialogTitle>
               <AlertDialogDescription className="text-gray-400">
-                您要從佇列中刪除「{selectedSong?.title}」嗎？
+                要對「{selectedSong?.title}」做什麼？
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1253,6 +1297,18 @@ export default function App() {
               >
                 取消
               </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (selectedSong) {
+                    await jumpToQueueItem(selectedSong as any);
+                  }
+                  setSelectedSong(null);
+                }}
+                style={{ backgroundColor: "#3b82f6" }}
+                className="hover:opacity-80"
+              >
+                跳轉
+              </AlertDialogAction>
               <AlertDialogAction
                 onClick={() =>
                   selectedSong &&
