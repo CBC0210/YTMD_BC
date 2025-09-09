@@ -20,6 +20,29 @@ APP_DIR="$WS_DIR/app"
 LINKS_FILE="${PUBLIC_LINKS_PATH:-$APP_DIR/public_links.json}"
 NGROK_API="http://127.0.0.1:4040/api/tunnels"
 
+# -------------------- optional config file --------------------
+# Allow loading a config file so users don't need to retype env vars each run.
+# Search order (first hit wins):
+#   1) $START_PUBLIC_CONFIG (explicit)
+#   2) $ROOT_DIR/.start-public.conf
+#   3) $CUSTOM_DIR/scripts/start-public.conf
+#   4) $HOME/.config/ytmd-start-public.conf
+{
+  cfg_candidates=()
+  [ -n "${START_PUBLIC_CONFIG:-}" ] && cfg_candidates+=("$START_PUBLIC_CONFIG")
+  cfg_candidates+=("$ROOT_DIR/.start-public.conf" "$CUSTOM_DIR/scripts/start-public.conf" "$HOME/.config/ytmd-start-public.conf")
+  for cfg in "${cfg_candidates[@]}"; do
+    if [ -f "$cfg" ]; then
+      echo "[public] 載入設定檔: $cfg"
+      set -a
+      # shellcheck disable=SC1090
+      . "$cfg"
+      set +a
+      break
+    fi
+  done
+}
+
 # -------------------- config --------------------
 FRONTEND_PORT=${FRONTEND_PORT:-5173}
 BACKEND_PORT=${WEB_SERVER_PORT:-${BACKEND_PORT:-8080}}
@@ -36,6 +59,26 @@ AUTO_INSTALL_QRCODE=${AUTO_INSTALL_QRCODE:-1}
 FORCE_BACKEND_RESTART=${FORCE_BACKEND_RESTART:-0}
 FRONTEND_FORCE_RESTART_ON_404=${FRONTEND_FORCE_RESTART_ON_404:-1}
 QR_PREFER_LAN=${QR_PREFER_LAN:-0}          # 1=QR 使用區域網 IP，即使有 public URL
+
+# Public URL provider (default: ngrok; Cloudflare only when Named Tunnel is configured)
+ENABLE_CLOUDFLARE=${ENABLE_CLOUDFLARE:-0}
+CLOUDFLARED_BIN=${CLOUDFLARED_BIN:-cloudflared}
+# Named Tunnel is optional and disabled by default; Quick Tunnel is default.
+ENABLE_NAMED_TUNNEL=${ENABLE_NAMED_TUNNEL:-0}
+CF_TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:-}
+# If using a Named Tunnel, you can specify the tunnel name and hostnames.
+# Example:
+#   ENABLE_NAMED_TUNNEL=1 CF_TUNNEL_NAME=song-server \
+#   CF_HOSTNAME_FRONTEND=vite.bc-verse.com CF_HOSTNAME_BACKEND=api.bc-verse.com
+CF_TUNNEL_NAME=${CF_TUNNEL_NAME:-}
+CF_HOSTNAME_FRONTEND=${CF_HOSTNAME_FRONTEND:-}
+CF_HOSTNAME_BACKEND=${CF_HOSTNAME_BACKEND:-}
+# Optional cloudflared config file (contains ingress rules) if not managed in Zero Trust UI
+CF_TUNNEL_CONFIG=${CF_TUNNEL_CONFIG:-}
+PUBLIC_PROVIDER=""
+# Cloudflare metrics ports (local API) for Quick Tunnel URL discovery
+CLOUDFLARE_METRICS_PORT_FE=${CLOUDFLARE_METRICS_PORT_FE:-52711}
+CLOUDFLARE_METRICS_PORT_BE=${CLOUDFLARE_METRICS_PORT_BE:-52712}
 
 # API Server (YTMD plugin) connectivity config; align with plugin menu (hostname/port)
 YTMD_HOSTNAME=${YTMD_HOSTNAME:-${YTMD_HOST:-localhost}}
@@ -85,6 +128,12 @@ cleanup(){
   # stop ngrok tunnels
   pkill -f "$NGROK_BIN http .*:${FRONTEND_PORT}" 2>/dev/null || true
   pkill -f "$NGROK_BIN http .*:${BACKEND_PORT}" 2>/dev/null || true
+  # stop cloudflared tunnels
+  pkill -f "$CLOUDFLARED_BIN .*--url .*:${FRONTEND_PORT}" 2>/dev/null || true
+  pkill -f "$CLOUDFLARED_BIN .*--url .*:${BACKEND_PORT}" 2>/dev/null || true
+  pkill -f "$CLOUDFLARED_BIN tunnel" 2>/dev/null || true
+  # named tunnel explicit kill (token/name based)
+  pkill -f "$CLOUDFLARED_BIN tunnel --no-autoupdate .* run" 2>/dev/null || true
   # stop frontend vite/http.server
   if [ -f "/tmp/ytreq-frontend.pid" ]; then
     FRONT_PID=$(cat /tmp/ytreq-frontend.pid || true)
@@ -133,6 +182,17 @@ pkg_hint() {
 
 need_bin(){ command -v "$1" >/dev/null 2>&1; }
 need_or_hint(){ if ! need_bin "$1"; then log "❌ 缺少指令: $1"; log "👉 安裝建議：$(pkg_hint "$2")"; return 1; fi }
+
+# 取得 cloudflared 安裝建議
+pkg_hint_cloudflared(){
+  if [ -f /etc/os-release ]; then . /etc/os-release; fi
+  case "${ID:-}" in
+    ubuntu|debian) echo "curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null && echo \"deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflare-main $(. /etc/os-release && echo $VERSION_CODENAME) main\" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list >/dev/null && sudo apt-get update && sudo apt-get install -y cloudflared" ;;
+    fedora) echo "sudo dnf install -y cloudflared" ;;
+    arch|manjaro) echo "sudo pacman -S --noconfirm cloudflared" ;;
+    *) echo "See: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/" ;;
+  esac
+}
 
 ensure_python() {
   if need_bin python3; then return 0; fi
@@ -239,9 +299,32 @@ start_frontend() {
 
 # -------------------- bootstrap --------------------
 need_or_hint curl curl >/dev/null || true
-if ! need_bin jq; then log "⚠️ 未找到 jq（解析 ngrok API）。安裝建議：$(pkg_hint jq)"; fi
-if [ "$ENABLE_NGROK" = "1" ] && ! need_bin "$NGROK_BIN"; then
-  log "⚠️ 未找到 ngrok。請先安裝並設定 authtoken。建議參考：https://ngrok.com/download"
+if ! need_bin jq; then log "⚠️ 未找到 jq（解析 JSON）。安裝建議：$(pkg_hint jq)"; fi
+if [ "$ENABLE_CLOUDFLARE" = "1" ]; then
+  if need_bin "$CLOUDFLARED_BIN"; then
+    # 僅在提供 Named Tunnel 設定時才使用 Cloudflare；否則改用 ngrok
+    if [ -n "${CF_TUNNEL_NAME}" ] || [ -n "${CF_TUNNEL_TOKEN}" ] || [ "$ENABLE_NAMED_TUNNEL" = "1" ]; then
+      ENABLE_NAMED_TUNNEL=1
+      PUBLIC_PROVIDER="cloudflare"
+      ENABLE_NGROK=0
+      log "Public provider: Cloudflare (Named Tunnel)"
+    else
+      log "ℹ️ 未提供 Cloudflare Named Tunnel 設定，將改用 ngrok（不使用 trycloudflare Quick Tunnel）"
+    fi
+  else
+    log "⚠️ Cloudflare 隧道未安裝，建議安裝：$(pkg_hint_cloudflared)"
+  fi
+fi
+if [ -z "$PUBLIC_PROVIDER" ] && [ "$ENABLE_NGROK" = "1" ]; then
+  if need_bin "$NGROK_BIN"; then
+    PUBLIC_PROVIDER="ngrok"
+    log "Public provider: ngrok"
+  else
+    log "⚠️ 未找到 ngrok。請先安裝並設定 authtoken。建議參考：https://ngrok.com/download"
+  fi
+fi
+if [ -z "$PUBLIC_PROVIDER" ]; then
+  log "ℹ️ 無可用的公開隧道提供者（使用 LAN 連結 / 本機埠）"
 fi
 
 # backend
@@ -249,6 +332,10 @@ fi
 log "預清理既有進程（若有）..."
 pkill -f "$NGROK_BIN http .*:${FRONTEND_PORT}" 2>/dev/null || true
 pkill -f "$NGROK_BIN http .*:${BACKEND_PORT}" 2>/dev/null || true
+# stop lingering cloudflared
+pkill -f "$CLOUDFLARED_BIN .*--url .*:${FRONTEND_PORT}" 2>/dev/null || true
+pkill -f "$CLOUDFLARED_BIN .*--url .*:${BACKEND_PORT}" 2>/dev/null || true
+pkill -f "$CLOUDFLARED_BIN tunnel" 2>/dev/null || true
 # Be aggressive to avoid stray vite instances from previous runs
 pkill -f "vite" 2>/dev/null || true
 pkill -f "node .*vite" 2>/dev/null || true
@@ -319,7 +406,94 @@ else
   log "跳過 404 自動修復 (FRONTEND_FORCE_RESTART_ON_404=0)"
 fi
 
-# -------------------- ngrok --------------------
+# -------------------- public tunnels --------------------
+# Cloudflare helpers
+start_cloudflared(){
+  local name="$1"; shift
+  local target="$1"; shift
+  local metrics_port="$1"; shift
+  local log_file="/tmp/cloudflared-${name}.log"
+  log "啟動 Cloudflare 隧道(${name}) -> ${target} (metrics=127.0.0.1:${metrics_port})";
+  if [ "$ENABLE_NAMED_TUNNEL" = "1" ] && [ -n "$CF_TUNNEL_TOKEN" ]; then
+    # Named tunnel (requires pre-config). Public hostname is managed via Cloudflare DNS.
+    ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel warn --metrics 127.0.0.1:${metrics_port} run --token "$CF_TUNNEL_TOKEN" &> "$log_file" &)
+  else
+    # Quick tunnel (trycloudflare.com)
+    ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel info --metrics 127.0.0.1:${metrics_port} --url "$target" &> "$log_file" &)
+  fi
+  echo "$log_file"
+}
+
+# Named tunnel launcher (single process). Requires CF_TUNNEL_NAME or CF_TUNNEL_TOKEN
+start_cloudflared_named(){
+  local log_file="/tmp/cloudflared-named.log"
+  if [ -n "$CF_TUNNEL_TOKEN" ]; then
+    log "啟動 Cloudflare Named Tunnel (token)"
+    ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel warn ${CF_TUNNEL_CONFIG:+--config "$CF_TUNNEL_CONFIG"} run --token "$CF_TUNNEL_TOKEN" &> "$log_file" &)
+  elif [ -n "$CF_TUNNEL_NAME" ]; then
+    log "啟動 Cloudflare Named Tunnel: $CF_TUNNEL_NAME${CF_TUNNEL_CONFIG:+ (config=$CF_TUNNEL_CONFIG)}"
+    ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel warn ${CF_TUNNEL_CONFIG:+--config "$CF_TUNNEL_CONFIG"} run "$CF_TUNNEL_NAME" &> "$log_file" &)
+  else
+    log "❌ ENABLE_NAMED_TUNNEL=1 但未提供 CF_TUNNEL_NAME 或 CF_TUNNEL_TOKEN"
+  fi
+  echo "$log_file"
+}
+
+# Attempt to infer hostnames from a cloudflared YAML config by matching service ports
+cf_hostname_for_port(){
+  local cfg="$1"; local port="$2"
+  [ -f "$cfg" ] || { echo ""; return 0; }
+  awk -v tgt=":""$port" -v h="" '
+    /^[[:space:]]*-?[[:space:]]*hostname:[[:space:]]*/ { sub(/^[[:space:]]*-?[[:space:]]*hostname:[[:space:]]*/, ""); h=$0; gsub(/["\047]/, "", h) }
+    /^[[:space:]]*service:[[:space:]]*/ {
+      s=$0; gsub(/["\047]/, "", s);
+      if (index(s, tgt)>0) { print h; exit }
+    }
+  ' "$cfg" | head -n1
+}
+
+# Auto-detect cloudflared config file if not provided
+resolve_cf_config(){
+  if [ -n "$CF_TUNNEL_CONFIG" ] && [ -f "$CF_TUNNEL_CONFIG" ]; then echo "$CF_TUNNEL_CONFIG"; return; fi
+  local home_cfg1="$HOME/.cloudflared/config.yml"
+  local home_cfg2="$HOME/.cloudflared/config.yaml"
+  local etc_cfg1="/etc/cloudflared/config.yml"
+  local etc_cfg2="/etc/cloudflared/config.yaml"
+  if [ -f "$home_cfg1" ]; then echo "$home_cfg1"; return; fi
+  if [ -f "$home_cfg2" ]; then echo "$home_cfg2"; return; fi
+  if [ -f "$etc_cfg1" ]; then echo "$etc_cfg1"; return; fi
+  if [ -f "$etc_cfg2" ]; then echo "$etc_cfg2"; return; fi
+  echo ""
+}
+
+# Prefer metrics API for Quick Tunnel (recommended)
+fetch_cloudflared_url_metrics(){
+  local port="$1"
+  local url="" raw
+  raw=$(curl -sf "http://127.0.0.1:${port}/quicktunnel" 2>/dev/null || true)
+  if [ -n "$raw" ]; then
+    if need_bin jq; then
+      # Try common JSON shapes
+      url=$(echo "$raw" | jq -r '.hostname // .result.hostname // .tunnel // empty' 2>/dev/null || true)
+    fi
+    if [ -z "$url" ]; then
+      url=$(echo "$raw" | grep -Eo 'https?://[A-Za-z0-9.-]+trycloudflare\.com[^"[:space:]]*' | head -n1 || true)
+    fi
+  fi
+  echo "$url"
+}
+
+# Fallback: parse log file for trycloudflare hostname
+fetch_cloudflared_url_from_log(){
+  local log_file="$1"
+  local url=""
+  if [ -f "$log_file" ]; then
+    url=$(grep -Eo 'https?://[A-Za-z0-9.-]+trycloudflare\.com[^"[:space:]]*' "$log_file" | tail -n1 || true)
+  fi
+  echo "$url"
+}
+
+# ngrok helpers (kept as fallback)
 start_ngrok(){
   local name="$1"; shift
   local target="$1"; shift
@@ -329,36 +503,16 @@ start_ngrok(){
      --host-header=rewrite \
      --region=$NGROK_REGION \
      --log=stdout --log-level=warn &> "$log_file" &)
-  sleep 2
+  echo "$log_file"
 }
 
-if [ "$ENABLE_NGROK" = "1" ]; then
-  if need_bin "$NGROK_BIN"; then
-    if [ "$NGROK_ALWAYS_NEW" = "1" ]; then
-      old_ngrok=$(pgrep -f "$NGROK_BIN http .*:${FRONTEND_PORT}" || true)
-      [ -n "$old_ngrok" ] && { log "NGROK_ALWAYS_NEW=1 -> 終止既有 ngrok(frontend): $old_ngrok"; kill $old_ngrok 2>/dev/null || true; sleep 1; }
-    fi
-    pgrep -f "$NGROK_BIN http .*:${FRONTEND_PORT}" >/dev/null 2>&1 || start_ngrok frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}"
-
-    # backend tunnel
-    if [ "$NGROK_ALWAYS_NEW" = "1" ]; then
-      old_ngrok=$(pgrep -f "$NGROK_BIN http .*:${BACKEND_PORT}" || true)
-      [ -n "$old_ngrok" ] && { log "NGROK_ALWAYS_NEW=1 -> 終止既有 ngrok(backend): $old_ngrok"; kill $old_ngrok 2>/dev/null || true; sleep 1; }
-    fi
-    pgrep -f "$NGROK_BIN http .*:${BACKEND_PORT}" >/dev/null 2>&1 || start_ngrok backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}"
-  else
-    log "⚠️ 略過 ngrok（未安裝）"
-  fi
-else
-  log "ℹ️ 已禁用 ngrok (ENABLE_NGROK=0)"
-fi
-
 fetch_ngrok_url(){
-  local url="" raw="";
+  local port="$1"
+  local url="" raw=""
   raw=$(curl -sf $NGROK_API || true)
   if [ -n "$raw" ]; then
     if need_bin jq; then
-  url=$(echo "$raw" | jq -r --arg p ":$1" '.tunnels[] | select(.config.addr | test($p)) | .public_url' | head -n1)
+      url=$(echo "$raw" | jq -r --arg p ":$port" '.tunnels[] | select(.config.addr | test($p)) | .public_url' | head -n1)
     else
       url=$(echo "$raw" | grep -Eo 'https://[^" ]+ngrok[^" ]+' | head -n1 || true)
     fi
@@ -368,13 +522,78 @@ fetch_ngrok_url(){
 
 frontend_url=""
 backend_url=""
-if [ "$ENABLE_NGROK" = "1" ] && need_bin "$NGROK_BIN"; then
+
+if [ "$PUBLIC_PROVIDER" = "cloudflare" ]; then
+  if [ "$ENABLE_NAMED_TUNNEL" = "1" ]; then
+    # Start one named tunnel and use provided hostnames as public URLs
+    CF_NAMED_LOG=$(start_cloudflared_named)
+  # Try to auto-detect config if not provided
+  if [ -z "$CF_TUNNEL_CONFIG" ]; then CF_TUNNEL_CONFIG=$(resolve_cf_config); fi
+  if [ -z "$CF_HOSTNAME_FRONTEND" ] && [ -n "$CF_TUNNEL_CONFIG" ]; then
+      CF_HOSTNAME_FRONTEND=$(cf_hostname_for_port "$CF_TUNNEL_CONFIG" "$FRONTEND_PORT" || true)
+    fi
+    if [ -n "$CF_HOSTNAME_FRONTEND" ]; then
+      frontend_url="https://$CF_HOSTNAME_FRONTEND"
+      log "使用 Named Tunnel FE hostname: $frontend_url"
+    else
+      log "⚠️ 未設定 CF_HOSTNAME_FRONTEND，public_links 將只包含本地連結"
+    fi
+    if [ -z "$CF_HOSTNAME_BACKEND" ] && [ -n "$CF_TUNNEL_CONFIG" ]; then
+      CF_HOSTNAME_BACKEND=$(cf_hostname_for_port "$CF_TUNNEL_CONFIG" "$BACKEND_PORT" || true)
+    fi
+    if [ -n "$CF_HOSTNAME_BACKEND" ]; then
+      backend_url="https://$CF_HOSTNAME_BACKEND"
+      log "使用 Named Tunnel BE hostname: $backend_url"
+    else
+      log "⚠️ 未設定 CF_HOSTNAME_BACKEND，public_links 將只包含本地連結（backend）"
+    fi
+  else
+    # Quick Tunnel mode: start per-port tunnels and discover URLs
+    CF_FE_LOG=$(start_cloudflared frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}" "$CLOUDFLARE_METRICS_PORT_FE")
+    # wait for FE URL with backoff on 429
+    for i in {1..60}; do 
+      frontend_url=$(fetch_cloudflared_url_metrics "$CLOUDFLARE_METRICS_PORT_FE")
+      [ -z "$frontend_url" ] && frontend_url=$(fetch_cloudflared_url_from_log "$CF_FE_LOG")
+      if [ -n "$frontend_url" ]; then break; fi
+      if grep -q "429 Too Many Requests" "$CF_FE_LOG" 2>/dev/null; then
+        log "Cloudflare Quick Tunnel (frontend) 遭到 429，30 秒後重試"
+        pkill -f "$CLOUDFLARED_BIN .*--url .*:$FRONTEND_PORT" 2>/dev/null || true
+        sleep 30
+        CF_FE_LOG=$(start_cloudflared frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}" "$CLOUDFLARE_METRICS_PORT_FE")
+      else
+        sleep 1
+      fi
+  done
+    [ -z "$frontend_url" ] && log "⚠️ 尚未取得 Cloudflare URL (frontend)" || log "取得 Cloudflare URL (frontend): $frontend_url"
+    # slight delay before starting backend to reduce rate limit likelihood
+    sleep 2
+    CF_BE_LOG=$(start_cloudflared backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}" "$CLOUDFLARE_METRICS_PORT_BE")
+    for i in {1..60}; do 
+      backend_url=$(fetch_cloudflared_url_metrics "$CLOUDFLARE_METRICS_PORT_BE")
+      [ -z "$backend_url" ] && backend_url=$(fetch_cloudflared_url_from_log "$CF_BE_LOG")
+      if [ -n "$backend_url" ]; then break; fi
+      if grep -q "429 Too Many Requests" "$CF_BE_LOG" 2>/dev/null; then
+        log "Cloudflare Quick Tunnel (backend) 遭到 429，30 秒後重試"
+        pkill -f "$CLOUDFLARED_BIN .*--url .*:$BACKEND_PORT" 2>/dev/null || true
+        sleep 30
+        CF_BE_LOG=$(start_cloudflared backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}" "$CLOUDFLARE_METRICS_PORT_BE")
+      else
+        sleep 1
+      fi
+    done
+    [ -z "$backend_url" ] && log "⚠️ 尚未取得 Cloudflare URL (backend)" || log "取得 Cloudflare URL (backend): $backend_url"
+  fi
+elif [ "$PUBLIC_PROVIDER" = "ngrok" ]; then
+  # ensure running
+  NG_FE_LOG=$(start_ngrok frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}")
+  NG_BE_LOG=$(start_ngrok backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}")
+  # fetch from API
   for i in {1..15}; do frontend_url=$(fetch_ngrok_url "$FRONTEND_PORT"); [ -n "$frontend_url" ] && break; sleep 1; done
   [ -z "$frontend_url" ] && log "⚠️ 尚未取得 ngrok URL，將背景持續嘗試刷新" || log "取得 ngrok URL: $frontend_url"
   for i in {1..15}; do backend_url=$(fetch_ngrok_url "$BACKEND_PORT"); [ -n "$backend_url" ] && break; sleep 1; done
   [ -z "$backend_url" ] && log "⚠️ 尚未取得 backend ngrok URL" || log "取得 backend ngrok URL: $backend_url"
 else
-  log "ℹ️ 不使用 ngrok，將只寫入本地連結"
+  log "ℹ️ 不使用公開隧道，將只寫入本地連結"
 fi
 
 # -------------------- public_links.json --------------------
@@ -413,6 +632,7 @@ monitor_public_links(){
   prev_lan="$LAN_IP"
   while :; do
     sleep 15
+  local new_url="" new_b=""
     current_lan=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}')
     if [ -z "$current_lan" ]; then
       current_lan="$prev_lan"
@@ -428,7 +648,22 @@ monitor_public_links(){
     be_pub=$(grep '"backend"' -A2 "$LINKS_FILE" 2>/dev/null | grep '"public"' | head -n1 | sed -E 's/.*"public": "([^"]*)".*/\1/')
 
     if [ -z "$fe_pub" ] || [ "$fe_pub" = "null" ]; then
-      new_url=$(fetch_ngrok_url "$FRONTEND_PORT")
+      if [ "$PUBLIC_PROVIDER" = "cloudflare" ] && [ "$ENABLE_NAMED_TUNNEL" != "1" ]; then
+        # First, try metrics endpoint again in case it's delayed
+        new_url=$(fetch_cloudflared_url_metrics "$CLOUDFLARE_METRICS_PORT_FE")
+        if [ -z "$new_url" ]; then
+          pkill -f "$CLOUDFLARED_BIN .*--url .*:$FRONTEND_PORT" 2>/dev/null || true
+          sleep 1
+          CF_FE_LOG=$(start_cloudflared frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}" "$CLOUDFLARE_METRICS_PORT_FE")
+          sleep 2
+          new_url=$(fetch_cloudflared_url_metrics "$CLOUDFLARE_METRICS_PORT_FE")
+          [ -z "$new_url" ] && new_url=$(fetch_cloudflared_url_from_log "$CF_FE_LOG")
+        fi
+      elif [ "$PUBLIC_PROVIDER" = "ngrok" ]; then
+        new_url=$(fetch_ngrok_url "$FRONTEND_PORT")
+      else
+        new_url=""
+      fi
       if [ -n "$new_url" ]; then
         frontend_url="$new_url"
         write_public_links "$new_url" "$backend_url"
@@ -436,14 +671,27 @@ monitor_public_links(){
       fi
     else
       code=$(curl -sk -o /dev/null -w '%{http_code}' "$fe_pub" || echo 000)
-      case "$code" in
+    case "$code" in
         000|502|503|504)
-          log "⚠️ frontend public URL ($fe_pub) HTTP=$code，嘗試重建 ngrok"
-          pkill -f "$NGROK_BIN http .*:$FRONTEND_PORT" 2>/dev/null || true
-          sleep 1
-          start_ngrok frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}"
-          sleep 2
-          new_url=$(fetch_ngrok_url "$FRONTEND_PORT")
+          log "⚠️ frontend public URL ($fe_pub) HTTP=$code，嘗試重建隧道 ($PUBLIC_PROVIDER)"
+      if [ "$PUBLIC_PROVIDER" = "cloudflare" ] && [ "$ENABLE_NAMED_TUNNEL" != "1" ]; then
+            pkill -f "$CLOUDFLARED_BIN .*--url .*:$FRONTEND_PORT" 2>/dev/null || true
+            sleep 1
+            CF_FE_LOG=$(start_cloudflared frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}" "$CLOUDFLARE_METRICS_PORT_FE")
+            sleep 2
+            new_url=$(fetch_cloudflared_url_metrics "$CLOUDFLARE_METRICS_PORT_FE")
+            [ -z "$new_url" ] && new_url=$(fetch_cloudflared_url_from_log "$CF_FE_LOG")
+          elif [ "$PUBLIC_PROVIDER" = "cloudflare" ] && [ "$ENABLE_NAMED_TUNNEL" = "1" ]; then
+            pkill -f "$CLOUDFLARED_BIN tunnel --no-autoupdate .* run" 2>/dev/null || true
+            sleep 1
+            CF_NAMED_LOG=$(start_cloudflared_named)
+          elif [ "$PUBLIC_PROVIDER" = "ngrok" ]; then
+            pkill -f "$NGROK_BIN http .*:$FRONTEND_PORT" 2>/dev/null || true
+            sleep 1
+            start_ngrok frontend "http://${UPSTREAM_HOST}:${FRONTEND_PORT}"
+            sleep 2
+            new_url=$(fetch_ngrok_url "$FRONTEND_PORT")
+          fi
           if [ -n "$new_url" ]; then
             frontend_url="$new_url"
             write_public_links "$new_url" "$backend_url"
@@ -452,16 +700,29 @@ monitor_public_links(){
       esac
     fi
 
-    if [ -n "$be_pub" ] && [ "$be_pub" != "null" ]; then
+  if [ -n "$be_pub" ] && [ "$be_pub" != "null" ]; then
       code=$(curl -sk -o /dev/null -w '%{http_code}' "$be_pub/health" || echo 000)
-      case "$code" in
+    case "$code" in
         000|502|503|504)
-          log "⚠️ backend public URL ($be_pub) HTTP=$code，嘗試重建 ngrok"
-          pkill -f "$NGROK_BIN http .*:$BACKEND_PORT" 2>/dev/null || true
-          sleep 1
-          start_ngrok backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}"
-          sleep 2
-          new_b=$(fetch_ngrok_url "$BACKEND_PORT")
+          log "⚠️ backend public URL ($be_pub) HTTP=$code，嘗試重建隧道 ($PUBLIC_PROVIDER)"
+      if [ "$PUBLIC_PROVIDER" = "cloudflare" ] && [ "$ENABLE_NAMED_TUNNEL" != "1" ]; then
+            pkill -f "$CLOUDFLARED_BIN .*--url .*:$BACKEND_PORT" 2>/dev/null || true
+            sleep 1
+            CF_BE_LOG=$(start_cloudflared backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}" "$CLOUDFLARE_METRICS_PORT_BE")
+            sleep 2
+            new_b=$(fetch_cloudflared_url_metrics "$CLOUDFLARE_METRICS_PORT_BE")
+            [ -z "$new_b" ] && new_b=$(fetch_cloudflared_url_from_log "$CF_BE_LOG")
+          elif [ "$PUBLIC_PROVIDER" = "cloudflare" ] && [ "$ENABLE_NAMED_TUNNEL" = "1" ]; then
+            pkill -f "$CLOUDFLARED_BIN tunnel --no-autoupdate .* run" 2>/dev/null || true
+            sleep 1
+            CF_NAMED_LOG=$(start_cloudflared_named)
+          elif [ "$PUBLIC_PROVIDER" = "ngrok" ]; then
+            pkill -f "$NGROK_BIN http .*:$BACKEND_PORT" 2>/dev/null || true
+            sleep 1
+            start_ngrok backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}"
+            sleep 2
+            new_b=$(fetch_ngrok_url "$BACKEND_PORT")
+          fi
           if [ -n "$new_b" ]; then
             backend_url="$new_b"
             write_public_links "$frontend_url" "$new_b"

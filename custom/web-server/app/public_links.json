@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2025-09-09T18:39:13+08:00",
+  "generatedAt": "2025-09-09T21:21:49+08:00",
   "frontend": {
-    "local": "http://172.23.0.113:5173",
-      "public": "https://dd91f0bac579.ngrok-free.app"
+    "local": "http://172.24.7.250:5173",
+      "public": "https://vite.bc-verse.com"
     },
     "backend": {
-      "local": "http://172.23.0.113:8080",
-      "public": ""
+      "local": "http://172.24.7.250:8080",
+      "public": "https://api.bc-verse.com"
   }
 }

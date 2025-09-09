@@ -1,6 +1,5 @@
 import { createPlugin } from '@/utils';
 import style from './style.css?inline';
-import QRCode from 'qrcode';
 import cfg from './config.json';
 
 export default createPlugin<
@@ -9,6 +8,9 @@ export default createPlugin<
   {
     observer: MutationObserver | null;
     timeoutId: NodeJS.Timeout | null;
+  // 新增：控制 QR 生成的狀態與開關
+  qrGenerated: boolean;
+  qrDisabled: boolean;
     initializeWhenReady(): void;
     injectSideInfo(): Promise<void>;
     stop(): void;
@@ -23,6 +25,22 @@ export default createPlugin<
   renderer: {
     observer: null,
     timeoutId: null,
+    
+    // 避免重複生成 QR 與便於快速禁用
+    qrGenerated: false,
+    get qrDisabled() {
+      // 允許使用者快速禁用（環境變數或 localStorage 開關）
+      // - 環境變數：YTMD_NO_QR=1
+      // - localStorage：localStorage.setItem('YTMD_NO_QR','1')
+      try {
+        // @ts-ignore
+        const envNoQr = typeof process !== 'undefined' && process?.env?.YTMD_NO_QR === '1';
+        const lsNoQr = typeof localStorage !== 'undefined' && localStorage.getItem('YTMD_NO_QR') === '1';
+        return envNoQr || lsNoQr || cfg.showQrCode === false;
+      } catch {
+        return cfg.showQrCode === false;
+      }
+    },
     
     async start() {
       console.log('[Side Info] Plugin starting...');
@@ -103,7 +121,7 @@ export default createPlugin<
       }
     },
 
-    async injectSideInfo() {
+  async injectSideInfo() {
       // 先移除現有元素
       const existingSide = document.getElementById('ext-side-info');
       if (existingSide) {
@@ -171,7 +189,7 @@ export default createPlugin<
       
       side.appendChild(msg);
 
-      // 下卡片：QR Code
+      // 下卡片：QR Code（可延後、可禁用）
       const qr = document.createElement('div');
       qr.style.cssText = `
         background: #2a2a2a !important;
@@ -179,134 +197,127 @@ export default createPlugin<
         padding: 12px !important;
         text-align: center !important;
       `;
-      
       const statusMsg = document.createElement('div');
       statusMsg.style.cssText = 'color: #fff !important; font-size: 12px !important; margin-bottom: 8px !important;';
-      statusMsg.textContent = '正在生成 QR Code...';
-      qr.appendChild(statusMsg);
-      
       const canvas = document.createElement('canvas');
       canvas.style.cssText = 'width: 100% !important; height: auto !important; max-width: 200px !important;';
-      qr.appendChild(canvas);
+
+      if (this.qrDisabled) {
+        statusMsg.textContent = 'QR Code 已停用';
+        statusMsg.style.color = '#999';
+        qr.appendChild(statusMsg);
+      } else {
+        statusMsg.textContent = '等待閒置後生成 QR Code…';
+        qr.appendChild(statusMsg);
+        qr.appendChild(canvas);
+      }
       side.appendChild(qr);
       
       document.body.appendChild(side);
       console.log('[Side Info] Element added to body');
       console.log('[Side Info] Element bounds:', side.getBoundingClientRect());
 
-      // 生成 QR Code
-      try {
-        let url = cfg.serverUrl || 'http://localhost:8080';
-        // 1) 優先使用 start-public 產生的 public_links.json（由後端提供 /public-links）
-        try {
-          console.log('[Side Info] 嘗試從 /public-links 讀取公開連結...');
-          const resp = await fetch('http://localhost:8080/public-links', {
-            method: 'GET',
-            signal: AbortSignal.timeout(2000),
-            mode: 'cors'
-          });
-          if (resp.ok) {
-            const data = await resp.json() as {
-              frontend?: { public?: string | null; local?: string | null };
-              backend?: { public?: string | null; local?: string | null };
-            };
-            const pref = data?.frontend?.public || data?.frontend?.local;
-            if (pref && typeof pref === 'string') {
-              url = pref;
-              console.log('[Side Info] 使用 public-links 前端網址:', url);
-            } else {
-              console.log('[Side Info] public-links 無可用的前端網址，使用後備策略');
-            }
-          } else {
-            console.log('[Side Info] /public-links 回應非 200:', resp.status);
-          }
-        } catch (e) {
-          console.log('[Side Info] 讀取 /public-links 失敗，將使用後備策略:', e);
-        }
-        
-        // 2) 如果啟用自動檢測 IP，嘗試從服務器獲取配置（僅當尚未由 public-links 決定 url）
-        if (cfg.autoDetectIp && (!url || url === 'http://localhost:8080' || url === cfg.serverUrl)) {
+      // 生成 QR Code（延後到頁面閒置）
+      const scheduleQr = () => {
+        if (this.qrDisabled || this.qrGenerated) return;
+        const run = async () => {
+          if (this.qrDisabled || this.qrGenerated) return;
+          this.qrGenerated = true;
+          statusMsg.textContent = '正在生成 QR Code...';
           try {
-            console.log('[Side Info] 嘗試獲取服務器配置...');
-            const configResponse = await fetch('http://localhost:8080/config', { 
-              method: 'GET',
-              signal: AbortSignal.timeout(3000),
-              mode: 'cors'
-            });
-            
-            if (configResponse.ok) {
-              const config = await configResponse.json() as { serverUrl?: string; serverIp?: string };
-              if (config.serverUrl) {
-                url = config.serverUrl;
-                console.log('[Side Info] 使用服務器配置的 URL:', url);
-              } else if (config.serverIp) {
-                url = `http://${config.serverIp}:8080`;
-                console.log('[Side Info] 使用檢測到的 IP 構建 URL:', url);
-              }
-            } else {
-              console.log('[Side Info] 配置端點回應錯誤:', configResponse.status);
-              throw new Error(`Config endpoint returned ${configResponse.status}`);
-            }
-          } catch (error) {
-            console.log('[Side Info] 無法獲取服務器配置，嘗試直接檢測:', error);
-            // 備用方案：直接檢查服務器是否在 localhost 可用
+            // 動態載入，避免在啟動階段佔用主執行緒
+            const { default: QR } = await import('qrcode');
+            let url = cfg.serverUrl || 'http://localhost:8080';
+
+            // 1) 優先使用 /public-links
             try {
-              const response = await fetch('http://localhost:8080/', { 
+              console.log('[Side Info] 嘗試從 /public-links 讀取公開連結...');
+              const resp = await fetch('http://localhost:8080/public-links', {
                 method: 'GET',
                 signal: AbortSignal.timeout(2000),
                 mode: 'cors'
               });
-              if (response.ok) {
-                url = 'http://localhost:8080';
-                console.log('[Side Info] 服務器在 localhost 可用');
-              } else {
-                throw new Error('Localhost not accessible');
-              }
-            } catch {
-              console.log('[Side Info] localhost 不可用，使用備用 IP');
-              // 嘗試使用常見的本地網段 IP
-              const commonIPs = ['192.168.1.100', '192.168.68.112', '192.168.0.100'];
-              let foundIP = null;
-              
-              for (const ip of commonIPs) {
-                try {
-                  const testUrl = `http://${ip}:8080`;
-                  await fetch(`${testUrl}/`, { 
-                    method: 'HEAD',
-                    signal: AbortSignal.timeout(1000),
-                    mode: 'no-cors'
-                  });
-                  foundIP = ip;
-                  break;
-                } catch {
-                  continue;
+              if (resp.ok) {
+                const data = await resp.json() as {
+                  frontend?: { public?: string | null; local?: string | null };
+                  backend?: { public?: string | null; local?: string | null };
+                };
+                const pref = data?.frontend?.public || data?.frontend?.local;
+                if (pref && typeof pref === 'string') {
+                  url = pref;
+                  console.log('[Side Info] 使用 public-links 前端網址:', url);
+                } else {
+                  console.log('[Side Info] public-links 無可用的前端網址，使用後備策略');
                 }
-              }
-              
-              if (foundIP) {
-                url = `http://${foundIP}:8080`;
-                console.log('[Side Info] 找到可用的服務器 IP:', foundIP);
               } else {
-                url = cfg.fallbackUrl || 'http://192.168.1.100:8080';
-                console.log('[Side Info] 使用最終備用 URL:', url);
+                console.log('[Side Info] /public-links 回應非 200:', resp.status);
+              }
+            } catch (e) {
+              console.log('[Side Info] 讀取 /public-links 失敗，將使用後備策略:', e);
+            }
+
+            // 2) 自動檢測 IP（可透過 YTMD_QR_NO_SCAN/LS 禁用）
+            const skipScan = (() => {
+              try {
+                // @ts-ignore
+                const envNoScan = typeof process !== 'undefined' && process?.env?.YTMD_QR_NO_SCAN === '1';
+                const lsNoScan = typeof localStorage !== 'undefined' && localStorage.getItem('YTMD_QR_NO_SCAN') === '1';
+                return envNoScan || lsNoScan;
+              } catch { return false; }
+            })();
+
+            if (!skipScan && cfg.autoDetectIp && (!url || url === 'http://localhost:8080' || url === cfg.serverUrl)) {
+              try {
+                console.log('[Side Info] 嘗試獲取服務器配置...');
+                const configResponse = await fetch('http://localhost:8080/config', { 
+                  method: 'GET',
+                  signal: AbortSignal.timeout(2000),
+                  mode: 'cors'
+                });
+                if (configResponse.ok) {
+                  const config = await configResponse.json() as { serverUrl?: string; serverIp?: string };
+                  if (config.serverUrl) {
+                    url = config.serverUrl;
+                    console.log('[Side Info] 使用服務器配置的 URL:', url);
+                  } else if (config.serverIp) {
+                    url = `http://${config.serverIp}:8080`;
+                    console.log('[Side Info] 使用檢測到的 IP 構建 URL:', url);
+                  }
+                }
+              } catch (error) {
+                console.log('[Side Info] 無法獲取服務器配置，跳過高成本掃描:', error);
               }
             }
+
+            console.log('[Side Info] Generating QR Code for URL:', url);
+            await QR.toCanvas(canvas, url, { width: 200, margin: 1 });
+            statusMsg.textContent = '掃描 QR Code 開始點歌';
+            statusMsg.style.color = '#4ade80';
+            console.log('[Side Info] QR Code generated successfully');
+            console.log('[Side Info] Canvas dimensions:', canvas.width, 'x', canvas.height);
+          } catch (error) {
+            console.error('[Side Info] QR Code generation failed:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            statusMsg.textContent = 'QR Code 生成失敗: ' + errorMessage;
+            statusMsg.style.color = '#ef4444';
+            canvas.style.display = 'none';
           }
+        };
+
+        // 優先使用 requestIdleCallback，並設定超時保險
+        try {
+          const idle = (window as any).requestIdleCallback as ((cb: () => void, opts?: { timeout?: number }) => number) | undefined;
+          if (idle) {
+            idle(run, { timeout: 3000 });
+          } else {
+            setTimeout(run, 2000);
+          }
+        } catch {
+          setTimeout(run, 2000);
         }
-        
-        console.log('[Side Info] Generating QR Code for URL:', url);
-        await QRCode.toCanvas(canvas, url, { width: 200, margin: 1 });
-        statusMsg.textContent = '掃描 QR Code 開始點歌';
-        statusMsg.style.color = '#4ade80';
-        console.log('[Side Info] QR Code generated successfully');
-        console.log('[Side Info] Canvas dimensions:', canvas.width, 'x', canvas.height);
-      } catch (error) {
-        console.error('[Side Info] QR Code generation failed:', error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        statusMsg.textContent = 'QR Code 生成失敗: ' + errorMessage;
-        statusMsg.style.color = '#ef4444';
-        canvas.style.display = 'none';
-      }
+      };
+
+      if (!this.qrDisabled) scheduleQr();
 
       // 額外的調試信息
       console.log('[Side Info] Plugin injection completed');

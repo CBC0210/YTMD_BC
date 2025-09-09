@@ -549,6 +549,103 @@ export default function App() {
     } catch {}
   };
 
+  // History row with left-swipe delete
+  const HistorySwipeRow: React.FC<{
+    song: Song;
+    onDelete: (s: Song) => void;
+    onClick: (s: Song) => void;
+  }> = ({ song, onDelete, onClick }) => {
+    const startX = React.useRef<number | null>(null);
+    const [dragX, setDragX] = React.useState(0);
+    const [dragging, setDragging] = React.useState(false);
+    const [open, setOpen] = React.useState(false);
+    const max = 80;
+    const openOffset = 56;
+    const threshold = 48;
+
+    const endDrag = () => {
+      if (!dragging) return;
+      setDragging(false);
+      if (dragX <= -threshold) setOpen(true); else setOpen(false);
+      setDragX(0);
+    };
+
+    const onTouchStart = (e: React.TouchEvent) => { startX.current = e.touches[0].clientX; setDragging(true); };
+    const onTouchMove = (e: React.TouchEvent) => {
+      if (startX.current == null) return;
+      const dx = e.touches[0].clientX - startX.current;
+      setDragX(Math.max(-max, Math.min(0, dx)));
+    };
+    const onTouchEnd = () => { endDrag(); startX.current = null; };
+
+    const onMouseDown = (e: React.MouseEvent) => { startX.current = e.clientX; setDragging(true); };
+    const onMouseMove = (e: React.MouseEvent) => {
+      if (!dragging || startX.current == null || e.buttons === 0) return;
+      const dx = e.clientX - startX.current;
+      setDragX(Math.max(-max, Math.min(0, dx)));
+    };
+    const onMouseUp = () => { endDrag(); startX.current = null; };
+
+    const translate = dragging ? dragX : (open ? -openOffset : 0);
+
+    return (
+      <div className="relative overflow-hidden rounded-lg">
+        {/* 背後的刪除按鈕區 */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pl-3">
+          <Button
+            onClick={(e) => { e.stopPropagation(); onDelete(song); setOpen(false); }}
+            style={{ backgroundColor: "#e74c3c" }}
+            className="w-9 h-9 p-0 rounded-full flex items-center justify-center text-white hover:opacity-80"
+            aria-label="刪除"
+            title="刪除"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+        {/* 前景內容，可左右滑動 */}
+        <div
+          className="flex items-center justify-between p-3 bg-gray-700 transition-transform select-none cursor-pointer"
+          style={{ transform: `translateX(${translate}px)` }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onClick={() => {
+            if (dragging) return; // 拖動中不觸發 click
+            if (open) { setOpen(false); return; }
+            onClick(song);
+          }}
+        >
+          <div className="flex items-center gap-3 flex-1">
+            {song.thumbnail && (
+              <img src={song.thumbnail} alt="thumb" className="w-10 h-10 object-cover rounded" />
+            )}
+            <div className="flex-1">
+              <h4 className="font-medium">{song.title}</h4>
+              <p className="text-gray-400 text-sm">
+                {song.artist}{song.album ? ` • ${song.album}` : ''}{song.duration ? ` • ${song.duration}` : ''}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); addToQueue(song); }}
+              disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
+              style={{ backgroundColor: "#e74c3c" }}
+              className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {((song.videoId || song.id) && adding.has(song.videoId || song.id)) ? '加入中…' : '加入'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleSongClick = (song: QueueItem) => {
     setSelectedSong(song);
   };
@@ -1202,7 +1299,7 @@ export default function App() {
                       </AlertDialog>
                     </span>
                   </CardTitle>
-                  <p className="text-xs text-gray-400 mt-1">小提示：點擊曲目可刪除。</p>
+                  <p className="text-xs text-gray-400 mt-1">小提示：左滑可刪除。</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {infoMsg && (
@@ -1212,35 +1309,12 @@ export default function App() {
                     <div className="text-gray-400 text-sm">目前沒有歷史記錄</div>
                   )}
                   {history.map((song) => (
-                    <div
+                    <HistorySwipeRow
                       key={song.id}
-                      className="flex items-center justify-between p-3 bg-gray-700 rounded-lg cursor-pointer"
-                      onClick={() => setSelectedHistory(song as any)}
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        {song.thumbnail && (
-                          <img src={song.thumbnail} alt="thumb" className="w-10 h-10 object-cover rounded" />
-                        )}
-                        <div className="flex-1">
-                          <h4 className="font-medium">{song.title}</h4>
-                          <p className="text-gray-400 text-sm">
-                            {song.artist}{song.album ? ` • ${song.album}` : ''}{song.duration ? ` • ${song.duration}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); addToQueue(song); }}
-                          disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
-                          style={{ backgroundColor: "#e74c3c" }}
-                          className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          {((song.videoId || song.id) && adding.has(song.videoId || song.id)) ? '加入中…' : '加入'}
-                        </Button>
-                      </div>
-                    </div>
+                      song={song}
+                      onDelete={(s) => setSelectedHistory(s as any)}
+                      onClick={() => { /* 點擊不再刪除，保留無動作 */ }}
+                    />
                   ))}
                 </CardContent>
               </Card>
