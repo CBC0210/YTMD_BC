@@ -174,8 +174,11 @@ export default function App() {
   const currentVideoIdRef = useRef<string | null>(null);
   const [likedSongs, setLikedSongs] = useState<Song[]>([]);
   const [history, setHistory] = useState<Song[]>([]);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const [reco, setReco] = useState<Song[]>([]);
   const [recoLoading, setRecoLoading] = useState(false);
+  const [queueExpanded, setQueueExpanded] = useState(false);
+  const [likedExpanded, setLikedExpanded] = useState(false);
   const lastVolChangeAt = useRef<number>(0);
   const queueTickRef = useRef<number>(0);
   // 防呆：加入佇列時的鎖與提示
@@ -1104,7 +1107,7 @@ export default function App() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>播放清單</CardTitle>
-                  <p className="text-xs text-gray-400 mt-1">小提示：左滑可刪除；點擊曲目可跳轉。正在播放的不能刪。</p>
+                  <p className="text-xs text-gray-400 mt-1">左滑刪除；點擊曲目跳轉。正在播放的不能刪。</p>
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -1137,7 +1140,13 @@ export default function App() {
                 </AlertDialog>
               </CardHeader>
               <CardContent className="space-y-3">
-                {playQueue.map((song) => (
+                {(() => {
+                  const currIdx = playQueue.findIndex((s) => s.videoId === currentVideoIdRef.current);
+                  const collapsedMax = 6; // 前 1 + 當前 + 後 4
+                  const startIdx = currIdx >= 0 ? Math.max(currIdx - 1, 0) : 0;
+                  const endIdx = Math.min(playQueue.length, startIdx + collapsedMax);
+                  const shown = queueExpanded ? playQueue : playQueue.slice(startIdx, endIdx);
+                  return shown.map((song) => (
                   <SwipeRow
                     key={song.id}
                     song={song}
@@ -1150,7 +1159,28 @@ export default function App() {
                       if (s.videoId !== currentVideoIdRef.current) handleSongClick(s as any);
                     }}
                   />
-                ))}
+                  ));
+                })()}
+                {playQueue.length > 0 && (() => {
+                  const currIdx = playQueue.findIndex((s) => s.videoId === currentVideoIdRef.current);
+                  const collapsedMax = 6;
+                  const startIdx = currIdx >= 0 ? Math.max(currIdx - 1, 0) : 0;
+                  const endIdx = Math.min(playQueue.length, startIdx + collapsedMax);
+                  const hiddenBefore = startIdx > 0;
+                  const hiddenAfter = endIdx < playQueue.length;
+                  const showToggle = queueExpanded || hiddenBefore || hiddenAfter;
+                  if (!showToggle) return null;
+                  return (
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        className="text-xs text-gray-300 hover:text-white underline"
+                        onClick={() => setQueueExpanded((v) => !v)}
+                      >
+                        {queueExpanded ? '收合' : '展開'}
+                      </button>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -1199,7 +1229,6 @@ export default function App() {
                       </AlertDialog>
                     </span>
                   </CardTitle>
-                  <p className="text-xs text-gray-400 mt-1">小提示：點擊右側垃圾桶刪除。</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {infoMsg && (
@@ -1208,13 +1237,23 @@ export default function App() {
                   {history.length === 0 && (
                     <div className="text-gray-400 text-sm">目前沒有歷史記錄</div>
                   )}
-              {history.map((song) => (
+                  {(historyExpanded ? history : history.slice(0, 5)).map((song) => (
                 <HistoryRow
                   key={song.id}
                   song={song}
                   onDelete={(s) => setSelectedHistory(s)}
                 />
               ))}
+                  {history.length > 5 && (
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        className="text-xs text-gray-300 hover:text-white underline"
+                        onClick={() => setHistoryExpanded((v) => !v)}
+                      >
+                        {historyExpanded ? '收合' : '展開'}
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1235,7 +1274,7 @@ export default function App() {
                   {infoMsg && (
                     <div className="text-xs text-gray-400">{infoMsg}</div>
                   )}
-                  {likedSongs.map((song) => (
+                  {(likedExpanded ? likedSongs : likedSongs.slice(0, 5)).map((song) => (
                     <div
                       key={song.id}
                       className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
@@ -1262,7 +1301,18 @@ export default function App() {
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => addToQueue(song)}
+                          onClick={() => {
+                            addToQueue(song);
+                            // 將最近從「喜歡的歌曲」加入的項目移到最上面
+                            setLikedSongs((prev) => {
+                              const id = song.videoId || song.id;
+                              const rest = prev.filter((s) => (s.videoId || s.id) !== id);
+                              return [
+                                { ...song, id: id, videoId: id },
+                                ...rest,
+                              ];
+                            });
+                          }}
                           disabled={!!(song.videoId || song.id) && adding.has(song.videoId || song.id)}
                           style={{ backgroundColor: "#e74c3c" }}
                           className="hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1273,6 +1323,16 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                  {likedSongs.length > 5 && (
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        className="text-xs text-gray-300 hover:text-white underline"
+                        onClick={() => setLikedExpanded((v) => !v)}
+                      >
+                        {likedExpanded ? '收合' : '展開'}
+                      </button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
