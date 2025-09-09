@@ -4,6 +4,8 @@ API 路由定義
 """
 
 from flask import Blueprint, render_template, request, jsonify
+import os
+import json
 import logging
 
 from ..services.ytmd_service import YTMDService
@@ -129,3 +131,26 @@ def get_config():
     """提供配置信息給前端和插件"""
     config_data = config_service.get_client_config()
     return jsonify(config_data)
+
+
+@api_blueprint.route('/public-links')
+def public_links():
+    """提供對外（ngrok/LAN）連結，供手機端讀取"""
+    try:
+        base_dir = os.path.dirname(os.path.dirname(__file__))  # app/
+        links_path = os.path.join(base_dir, 'public_links.json')
+        if os.path.exists(links_path):
+            with open(links_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            data = {
+                'generatedAt': None,
+                'frontend': {
+                    'local': None,
+                    'public': None,
+                }
+            }
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"讀取 public_links.json 失敗: {e}")
+        return jsonify({'error': 'failed to read public links'}), 500

@@ -197,9 +197,35 @@ export default createPlugin<
       // 生成 QR Code
       try {
         let url = cfg.serverUrl || 'http://localhost:8080';
+        // 1) 優先使用 start-public 產生的 public_links.json（由後端提供 /public-links）
+        try {
+          console.log('[Side Info] 嘗試從 /public-links 讀取公開連結...');
+          const resp = await fetch('http://localhost:8080/public-links', {
+            method: 'GET',
+            signal: AbortSignal.timeout(2000),
+            mode: 'cors'
+          });
+          if (resp.ok) {
+            const data = await resp.json() as {
+              frontend?: { public?: string | null; local?: string | null };
+              backend?: { public?: string | null; local?: string | null };
+            };
+            const pref = data?.frontend?.public || data?.frontend?.local;
+            if (pref && typeof pref === 'string') {
+              url = pref;
+              console.log('[Side Info] 使用 public-links 前端網址:', url);
+            } else {
+              console.log('[Side Info] public-links 無可用的前端網址，使用後備策略');
+            }
+          } else {
+            console.log('[Side Info] /public-links 回應非 200:', resp.status);
+          }
+        } catch (e) {
+          console.log('[Side Info] 讀取 /public-links 失敗，將使用後備策略:', e);
+        }
         
-        // 如果啟用自動檢測 IP，嘗試從服務器獲取配置
-        if (cfg.autoDetectIp) {
+        // 2) 如果啟用自動檢測 IP，嘗試從服務器獲取配置（僅當尚未由 public-links 決定 url）
+        if (cfg.autoDetectIp && (!url || url === 'http://localhost:8080' || url === cfg.serverUrl)) {
           try {
             console.log('[Side Info] 嘗試獲取服務器配置...');
             const configResponse = await fetch('http://localhost:8080/config', { 

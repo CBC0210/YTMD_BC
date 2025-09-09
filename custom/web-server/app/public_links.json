@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2025-09-09T14:52:36+08:00",
+  "frontend": {
+    "local": "http://172.23.0.113:5173",
+      "public": "https://af2475c86ee1.ngrok-free.app"
+    },
+    "backend": {
+      "local": "http://172.23.0.113:8080",
+      "public": ""
+  }
+}

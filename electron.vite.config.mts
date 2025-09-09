@@ -158,6 +158,8 @@ export default defineConfig({
         alias: resolveAlias,
       },
       server: {
+        host: true,
+        allowedHosts: true,
         cors: {
           origin: 'https://music.youtube.com',
         },

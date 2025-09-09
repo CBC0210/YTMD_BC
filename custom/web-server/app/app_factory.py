@@ -26,13 +26,19 @@ def create_app() -> Flask:
                 template_folder=template_dir,
                 static_folder=static_dir)
     
-    # 配置 CORS，允許來自 YouTube Music 的請求
-    CORS(app, origins=[
+    # 配置 CORS，允許來自 YouTube Music、localhost 與 ngrok 網域
+    ngrok_host = os.getenv('NGROK_HOST')  # 例如 76962366566f.ngrok-free.app
+    cors_origins = [
         "https://music.youtube.com",
-        "https://www.youtube.com", 
+        "https://www.youtube.com",
         "http://localhost:*",
-        "https://localhost:*"
-    ])
+        "https://localhost:*",
+        r"https://*.ngrok-free.app",
+        r"https://*.ngrok.io",
+    ]
+    if ngrok_host:
+        cors_origins.append(f"https://{ngrok_host}")
+    CORS(app, origins=cors_origins)
     
     # 註冊藍圖
     app.register_blueprint(api_blueprint)
