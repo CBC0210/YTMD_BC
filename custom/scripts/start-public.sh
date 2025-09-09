@@ -154,17 +154,6 @@ cleanup(){
     [ -n "$SUP_PID" ] && kill "$SUP_PID" 2>/dev/null || true
     rm -f /tmp/ytreq-frontend-supervisor.pid
   fi
-  # stop song-server supervisor and process
-  if [ -f "/tmp/cloudflared-song-server-supervisor.pid" ]; then
-    CF_SUP_PID=$(cat /tmp/cloudflared-song-server-supervisor.pid 2>/dev/null || true)
-    [ -n "$CF_SUP_PID" ] && kill "$CF_SUP_PID" 2>/dev/null || true
-    rm -f /tmp/cloudflared-song-server-supervisor.pid
-  fi
-  if [ -f "/tmp/cloudflared-song-server.pid" ]; then
-    CF_SONG_PID=$(cat /tmp/cloudflared-song-server.pid 2>/dev/null || true)
-    [ -n "$CF_SONG_PID" ] && kill "$CF_SONG_PID" 2>/dev/null || true
-    rm -f /tmp/cloudflared-song-server.pid
-  fi
   # optional: stop electron dev
   pkill -f "electron" 2>/dev/null || true
   rm -f "$PID_FILE_MAIN"
@@ -313,16 +302,15 @@ need_or_hint curl curl >/dev/null || true
 if ! need_bin jq; then log "⚠️ 未找到 jq（解析 JSON）。安裝建議：$(pkg_hint jq)"; fi
 if [ "$ENABLE_CLOUDFLARE" = "1" ]; then
   if need_bin "$CLOUDFLARED_BIN"; then
-    # 啟用 Cloudflare Named Tunnel 模式（不預設名稱）
-    ENABLE_NAMED_TUNNEL=1
-    PUBLIC_PROVIDER="cloudflare"
-    ENABLE_NGROK=0
-  if [ -n "$CF_TUNNEL_TOKEN" ]; then
-      log "Public provider: Cloudflare (Named Tunnel via token)"
-    else
+    # 僅在提供 Named Tunnel 設定時才使用 Cloudflare；否則改用 ngrok
+    if [ -n "${CF_TUNNEL_NAME}" ] || [ -n "${CF_TUNNEL_TOKEN}" ] || [ "$ENABLE_NAMED_TUNNEL" = "1" ]; then
+      ENABLE_NAMED_TUNNEL=1
+      PUBLIC_PROVIDER="cloudflare"
+      ENABLE_NGROK=0
       log "Public provider: Cloudflare (Named Tunnel)"
+    else
+      log "ℹ️ 未提供 Cloudflare Named Tunnel 設定，將改用 ngrok（不使用 trycloudflare Quick Tunnel）"
     fi
-  # 注意：實際啟動 song-server 會在預清理之後執行
   else
     log "⚠️ Cloudflare 隧道未安裝，建議安裝：$(pkg_hint_cloudflared)"
   fi
@@ -354,15 +342,6 @@ pkill -f "node .*vite" 2>/dev/null || true
 pkill -f "http.server ${FRONTEND_PORT}" 2>/dev/null || true
 pkill -f "server.py" 2>/dev/null || true
 kill_port "$FRONTEND_PORT"; kill_port "$BACKEND_PORT"; kill_port "$ELECTRON_RENDERER_PORT"
-
-# ensure song-server sidecar is running (if Cloudflare chosen)
-if [ "$PUBLIC_PROVIDER" = "cloudflare" ]; then
-  # 若 Named Tunnel 不是使用同名 song-server，才啟動 sidecar，避免重複跑同一個 tunnel
-  if [ "${CF_TUNNEL_NAME:-}" != "song-server" ] && [ -z "${CF_TUNNEL_TOKEN:-}" ]; then
-    start_cloudflared_song_server >/dev/null 2>&1 || true
-    start_song_server_supervisor >/dev/null 2>&1 || true
-  fi
-fi
 
 start_backend
 
@@ -452,41 +431,12 @@ start_cloudflared_named(){
     log "啟動 Cloudflare Named Tunnel (token)"
     ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel warn ${CF_TUNNEL_CONFIG:+--config "$CF_TUNNEL_CONFIG"} run --token "$CF_TUNNEL_TOKEN" &> "$log_file" &)
   elif [ -n "$CF_TUNNEL_NAME" ]; then
-  log "啟動 Cloudflare Named Tunnel: $CF_TUNNEL_NAME${CF_TUNNEL_CONFIG:+ (config=$CF_TUNNEL_CONFIG)}"
-  ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel warn ${CF_TUNNEL_CONFIG:+--config "$CF_TUNNEL_CONFIG"} run "$CF_TUNNEL_NAME" &> "$log_file" &)
+    log "啟動 Cloudflare Named Tunnel: $CF_TUNNEL_NAME${CF_TUNNEL_CONFIG:+ (config=$CF_TUNNEL_CONFIG)}"
+    ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel warn ${CF_TUNNEL_CONFIG:+--config "$CF_TUNNEL_CONFIG"} run "$CF_TUNNEL_NAME" &> "$log_file" &)
   else
     log "❌ ENABLE_NAMED_TUNNEL=1 但未提供 CF_TUNNEL_NAME 或 CF_TUNNEL_TOKEN"
   fi
   echo "$log_file"
-}
-
-# Sidecar: run a fixed tunnel service name to ensure Cloudflare connectivity
-start_cloudflared_song_server(){
-  local log_file="/tmp/cloudflared-song-server.log"
-  log "啟動 Cloudflared 服務 (song-server) 以確保連線"
-  ("$CLOUDFLARED_BIN" tunnel --no-autoupdate --loglevel warn ${CF_TUNNEL_CONFIG:+--config "$CF_TUNNEL_CONFIG"} run song-server >> "$log_file" 2>&1 & echo $! > /tmp/cloudflared-song-server.pid)
-  echo "$log_file"
-}
-
-# Supervisor to keep song-server running persistently
-start_song_server_supervisor(){
-  local sup_pid_file="/tmp/cloudflared-song-server-supervisor.pid"
-  # stop previous
-  if [ -f "$sup_pid_file" ]; then
-    local old
-    old=$(cat "$sup_pid_file" 2>/dev/null || true)
-    [ -n "$old" ] && kill "$old" 2>/dev/null || true
-    rm -f "$sup_pid_file"
-  fi
-  (
-    while :; do
-      sleep 10
-      if ! pgrep -f "${CLOUDFLARED_BIN} .*tunnel .*run .*song-server" >/dev/null 2>&1; then
-        log "⚠️ song-server 進程不在，嘗試重啟"
-        start_cloudflared_song_server >/dev/null 2>&1 || true
-      fi
-    done
-  ) & echo $! > "$sup_pid_file"
 }
 
 # Attempt to infer hostnames from a cloudflared YAML config by matching service ports
@@ -577,11 +527,6 @@ if [ "$PUBLIC_PROVIDER" = "cloudflare" ]; then
   if [ "$ENABLE_NAMED_TUNNEL" = "1" ]; then
     # Start one named tunnel and use provided hostnames as public URLs
     CF_NAMED_LOG=$(start_cloudflared_named)
-    # Quick readiness hint
-    sleep 2
-    if ! pgrep -f "${CLOUDFLARED_BIN} .*tunnel .*run( |$)" >/dev/null 2>&1; then
-      log "⚠️ Named Tunnel 似乎未啟動，請檢查：$CF_NAMED_LOG"
-    fi
   # Try to auto-detect config if not provided
   if [ -z "$CF_TUNNEL_CONFIG" ]; then CF_TUNNEL_CONFIG=$(resolve_cf_config); fi
   if [ -z "$CF_HOSTNAME_FRONTEND" ] && [ -n "$CF_TUNNEL_CONFIG" ]; then
@@ -622,7 +567,7 @@ if [ "$PUBLIC_PROVIDER" = "cloudflare" ]; then
     [ -z "$frontend_url" ] && log "⚠️ 尚未取得 Cloudflare URL (frontend)" || log "取得 Cloudflare URL (frontend): $frontend_url"
     # slight delay before starting backend to reduce rate limit likelihood
     sleep 2
-  CF_BE_LOG=$(start_cloudflared backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}" "$CLOUDFLARE_METRICS_PORT_BE")
+    CF_BE_LOG=$(start_cloudflared backend "http://${UPSTREAM_HOST}:${BACKEND_PORT}" "$CLOUDFLARE_METRICS_PORT_BE")
     for i in {1..60}; do 
       backend_url=$(fetch_cloudflared_url_metrics "$CLOUDFLARE_METRICS_PORT_BE")
       [ -z "$backend_url" ] && backend_url=$(fetch_cloudflared_url_from_log "$CF_BE_LOG")
