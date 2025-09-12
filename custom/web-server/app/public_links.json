@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2025-09-09T21:52:47+08:00",
+  "generatedAt": "2025-09-11T21:24:47+08:00",
   "frontend": {
-    "local": "http://172.24.7.250:5173",
+    "local": "http://192.168.1.167:5173",
       "public": "https://vite.bc-verse.com"
     },
     "backend": {
-      "local": "http://172.24.7.250:8080",
+      "local": "http://192.168.1.167:8080",
       "public": "https://api.bc-verse.com"
   }
 }

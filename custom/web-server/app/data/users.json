@@ -3,11 +3,67 @@
     "CBC": {
       "history": [
         {
-          "videoId": "jHVZAcF5_6g",
-          "title": "山海",
+          "videoId": "_3FAwIg9YV8",
+          "title": "清明上河圖",
+          "artist": "小悠",
+          "thumbnail": "https://lh3.googleusercontent.com/2mw8XPCrlA-_PlX6MQ98F3PJdiC3psnUgr9V-2EVbV-IYT7I9dVXDPbCzzc5tv9Xm1NWGyL4nu3W6vxn=w60-h60-l90-rj",
+          "duration": "4:34"
+        },
+        {
+          "videoId": "eU88zXiVlKA",
+          "title": "The Fog Space",
+          "artist": "Guo Ding",
+          "thumbnail": "https://lh3.googleusercontent.com/k1ZcPheqeIrd6-rGreYZSv1z9ZepzaWzXrnKBQFAjQ43R0Ct2ykbY9i944SgbU6_orNVeP2f5-DZk0wFPw=w60-h60-l90-rj",
+          "duration": "4:11"
+        },
+        {
+          "videoId": "Notgyw3-8zg",
+          "title": "阳光开朗大男孩 (公主视角版)",
+          "artist": "季文钊",
+          "thumbnail": "https://lh3.googleusercontent.com/LES7A0W0FDd5YrnV2irs0ME_IgyK-9xXU5nCJMWhdddK2en_MCsV3QmDOb8slt_gqSoV-lpN325fqBiKcQ=w60-h60-l90-rj",
+          "duration": "3:02"
+        },
+        {
+          "videoId": "b-eKsbzMr6Q",
+          "title": "嚣张",
+          "artist": "en",
+          "thumbnail": "https://lh3.googleusercontent.com/KaidXZt5LyhK8-HWtMYWRHYK9kY3unQt18Hz5te8oGDBS1VztKZ-gmeIHoFFlEKUwkkA0KR2dxgy6JND=w60-h60-l90-rj",
+          "duration": "4:14"
+        },
+        {
+          "videoId": "iR1sAex__VA",
+          "title": "Waiting For Love",
+          "artist": "Avicii",
+          "thumbnail": "https://lh3.googleusercontent.com/gNvQI_me1i5v3oXEaJCPYpjhYj5yQSObQNnKsBYTZhWqax62D6AslMc1z7Euvl2r6wnvuqWeLzFGUv5R=w60-h60-l90-rj",
+          "duration": "3:51"
+        },
+        {
+          "videoId": "we9IbnUSBu4",
+          "title": "醜",
           "artist": "草東沒有派對",
-          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
-          "duration": "4:12"
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w544-h544-l90-rj",
+          "duration": "1:58"
+        },
+        {
+          "videoId": "oWgwWa5GJA8",
+          "title": "鲜花（I'm Going To Remember U）",
+          "artist": "回春丹",
+          "thumbnail": "https://lh3.googleusercontent.com/dUEbLyr4VrngwHfkV1z1RV3cIOl3NYPqBT4JoIAg9SFF3aY5TZQQ96bMj4JKA6Kx2-j_MYBT9mf2Pdk=w60-h60-l90-rj",
+          "duration": "5:42"
+        },
+        {
+          "videoId": "GqWYJT-iMTw",
+          "title": "Baby (feat. Ludacris)",
+          "artist": "Justin Bieber",
+          "thumbnail": "https://lh3.googleusercontent.com/AhK3o07HdRpZNMz8nbPyKrFhwvdTGLJzx07UeIdaqdMDZpW-T0jlbAKD1wUlS-H4s6hw_F0cTbSDkyEx=w60-h60-l90-rj",
+          "duration": "3:35"
+        },
+        {
+          "videoId": "gPfmCw3UveY",
+          "title": "Television / So Far So Good",
+          "artist": "Rex Orange County",
+          "thumbnail": "https://lh3.googleusercontent.com/QCE_g7hOZbDi8k8Lo58eIXZOl3kC_wwFMXfaaYxC6fVontxB-TX30_SRV16OQlvHvZMz6NL8YsVA42nV=w60-h60-l90-rj",
+          "duration": "4:23"
         },
         {
           "videoId": "_pD6DDmnsu0",
@@ -15,6 +71,62 @@
           "artist": "草東沒有派對",
           "thumbnail": "https://lh3.googleusercontent.com/gn-I6WOFblh_l2-bHbpstV92d5eGmubE4bo3Vqh0J3ZaNcbcm6VoA1IZ2ylOohp5iFiYN8yHacv9jFk3=w120-h120-l90-rj",
           "duration": "3:53"
+        },
+        {
+          "videoId": "_OhErmVm1Ao",
+          "title": "越來越不懂",
+          "artist": "蔡健雅",
+          "thumbnail": "https://lh3.googleusercontent.com/0tN2MbUOmKiTRm4gmAHm2sgU4cdhFnxDjgXV4o99Vcy_4aai_28oUrG38snCpRoIAm-aYF8EK9zUHjgc=w544-h544-l90-rj",
+          "duration": "4:10"
+        },
+        {
+          "videoId": "sItQ5kruw3M",
+          "title": "嘻哈庄腳情",
+          "artist": "玖壹壹 & Lulu",
+          "thumbnail": "https://lh3.googleusercontent.com/pYeZlrdtyLPlLdK0oO9GbtApijR_RipjZAZCvZxOgpS5PYFLJXW5JQ5dJP4NnjHv_-0bfvrm1kuFmhs=w60-h60-l90-rj",
+          "duration": "3:41"
+        },
+        {
+          "videoId": "fovT1WfBlU0",
+          "title": "原來你跟每個人都說著一樣的話",
+          "artist": "怕胖團",
+          "thumbnail": "https://lh3.googleusercontent.com/dsutHz7W5jGCXy0TZmvhV-slwD5Tevn_yAo1jOmMuQloEXB9EicwZlMtFZRfm5c5LyX4EgShUucQNYgFFw=w60-h60-l90-rj",
+          "duration": "3:59"
+        },
+        {
+          "videoId": "GKvJJ6kfStU",
+          "title": "VEM CA",
+          "artist": "CHASHKAKEFIRA",
+          "thumbnail": "https://lh3.googleusercontent.com/BWClK5ept4GOdI2TU7OXXhTO_3I6oDXie2ItX4Mkz1v8JrgOfWBEdyIu3wA8rnQBHPf-5iyw7h6b8Vtz=w60-h60-l90-rj",
+          "duration": "1:39"
+        },
+        {
+          "videoId": "XJWQLq1oPAc",
+          "title": "DIA DELÍCIA",
+          "artist": "Nakama",
+          "thumbnail": "https://lh3.googleusercontent.com/hsxflCF--GIjXPmWDO7lssf4NSt4j__v1SwOPa_bvBH85H4_EePffX0vVDtcxMpCoeMC_UREWPeXSMiF=w60-h60-l90-rj",
+          "duration": "1:16"
+        },
+        {
+          "videoId": "pr8k4LdgxAM",
+          "title": "New Thang",
+          "artist": "Redfoo",
+          "thumbnail": "https://lh3.googleusercontent.com/VXNc0KvcOGIeRPD7a1bIEo4KklGgPa2CYTAlRE9Ox6kL78oXoI_k409h9-fQLwEtJzWXCCmL0hhCDpH9=w60-h60-l90-rj",
+          "duration": "3:47"
+        },
+        {
+          "videoId": "jHVZAcF5_6g",
+          "title": "山海",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
+          "duration": "4:12"
+        },
+        {
+          "videoId": "pDFgm2YNIic",
+          "title": "与我无关",
+          "artist": "阿冗",
+          "thumbnail": "https://lh3.googleusercontent.com/iM0JnPr0Io-Bc2KJVyhbZKfEg3JH_XkYGKCqf8kPZh3cea_Bubl9NthIRHiuIcKzoNLsSeE8Tgpa7C7IVg=w60-h60-l90-rj",
+          "duration": "4:00"
         },
         {
           "videoId": "gE1F1CVExhg",
@@ -29,34 +141,6 @@
           "artist": "草東沒有派對",
           "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
           "duration": "3:57"
-        },
-        {
-          "videoId": "pr8k4LdgxAM",
-          "title": "New Thang",
-          "artist": "Redfoo",
-          "thumbnail": "https://lh3.googleusercontent.com/VXNc0KvcOGIeRPD7a1bIEo4KklGgPa2CYTAlRE9Ox6kL78oXoI_k409h9-fQLwEtJzWXCCmL0hhCDpH9=w60-h60-l90-rj",
-          "duration": "3:47"
-        },
-        {
-          "videoId": "gPfmCw3UveY",
-          "title": "Television / So Far So Good",
-          "artist": "Rex Orange County",
-          "thumbnail": "https://lh3.googleusercontent.com/QCE_g7hOZbDi8k8Lo58eIXZOl3kC_wwFMXfaaYxC6fVontxB-TX30_SRV16OQlvHvZMz6NL8YsVA42nV=w60-h60-l90-rj",
-          "duration": "4:23"
-        },
-        {
-          "videoId": "we9IbnUSBu4",
-          "title": "醜",
-          "artist": "草東沒有派對",
-          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w544-h544-l90-rj",
-          "duration": "1:58"
-        },
-        {
-          "videoId": "iR1sAex__VA",
-          "title": "Waiting For Love",
-          "artist": "Avicii",
-          "thumbnail": "https://lh3.googleusercontent.com/gNvQI_me1i5v3oXEaJCPYpjhYj5yQSObQNnKsBYTZhWqax62D6AslMc1z7Euvl2r6wnvuqWeLzFGUv5R=w60-h60-l90-rj",
-          "duration": "3:51"
         }
       ],
       "likes": [
@@ -66,6 +150,13 @@
           "artist": "草東沒有派對",
           "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w544-h544-l90-rj",
           "duration": "1:58"
+        },
+        {
+          "videoId": "_OhErmVm1Ao",
+          "title": "越來越不懂",
+          "artist": "蔡健雅",
+          "thumbnail": "https://lh3.googleusercontent.com/0tN2MbUOmKiTRm4gmAHm2sgU4cdhFnxDjgXV4o99Vcy_4aai_28oUrG38snCpRoIAm-aYF8EK9zUHjgc=w544-h544-l90-rj",
+          "duration": "4:10"
         }
       ]
     },
@@ -90,6 +181,32 @@
     },
     "Fizzy": {
       "history": [],
+      "likes": []
+    },
+    "比利": {
+      "history": [
+        {
+          "videoId": "y9IMbT00178",
+          "title": "暮色迴響",
+          "artist": "吉星出租",
+          "thumbnail": "https://lh3.googleusercontent.com/TZoWRGhtn2RzdfeVYQ-WDXQU82X1oSvblNMv-v0yOZQIQyraxmWAs_Lhnx4pW828zMj8seN-RpId8nwz=w60-h60-l90-rj",
+          "duration": "2:59"
+        },
+        {
+          "videoId": "QWd67yHVa08",
+          "title": "天真的橡皮 (DJ林泽)",
+          "artist": "白水寒",
+          "thumbnail": "https://lh3.googleusercontent.com/0m2NNPgkztlCuMcO70rXf_2z1QrfMsrHuN4DT5OdoHczcJIJ2nE8TqZLotimtL9_hlL2YQJEI392-VVg=w60-h60-l90-rj",
+          "duration": "2:48"
+        },
+        {
+          "videoId": "nGTENIfGTu4",
+          "title": "天真的橡皮 (DJ版)",
+          "artist": "王小帅",
+          "thumbnail": "https://lh3.googleusercontent.com/rkdmqVeLz8HOg7hjOgVPgiJNhRPrPEgKN0JUvwihV823iV3PsjOP5UxcWKnQDwVwMfBPyqBU1xPfZto=w60-h60-l90-rj",
+          "duration": "3:34"
+        }
+      ],
       "likes": []
     }
   }
