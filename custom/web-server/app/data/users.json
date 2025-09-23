@@ -3,53 +3,88 @@
     "CBC": {
       "history": [
         {
-          "videoId": "_3FAwIg9YV8",
-          "title": "清明上河圖",
-          "artist": "小悠",
-          "thumbnail": "https://lh3.googleusercontent.com/2mw8XPCrlA-_PlX6MQ98F3PJdiC3psnUgr9V-2EVbV-IYT7I9dVXDPbCzzc5tv9Xm1NWGyL4nu3W6vxn=w60-h60-l90-rj",
-          "duration": "4:34"
+          "videoId": "aZ1hziFhj1o",
+          "title": "Love Story",
+          "artist": "Taylor Swift",
+          "thumbnail": "https://lh3.googleusercontent.com/YEcmx-25aRBMaKNTvCx17QboP0KCJq2jqKdjpjLImqA60wWE2AZV_ZdQa417ZEmAkK7ipsEt1m0DEI-Z9A=w60-h60-l90-rj",
+          "duration": "3:56"
         },
         {
-          "videoId": "eU88zXiVlKA",
-          "title": "The Fog Space",
-          "artist": "Guo Ding",
-          "thumbnail": "https://lh3.googleusercontent.com/k1ZcPheqeIrd6-rGreYZSv1z9ZepzaWzXrnKBQFAjQ43R0Ct2ykbY9i944SgbU6_orNVeP2f5-DZk0wFPw=w60-h60-l90-rj",
-          "duration": "4:11"
-        },
-        {
-          "videoId": "Notgyw3-8zg",
-          "title": "阳光开朗大男孩 (公主视角版)",
-          "artist": "季文钊",
-          "thumbnail": "https://lh3.googleusercontent.com/LES7A0W0FDd5YrnV2irs0ME_IgyK-9xXU5nCJMWhdddK2en_MCsV3QmDOb8slt_gqSoV-lpN325fqBiKcQ=w60-h60-l90-rj",
-          "duration": "3:02"
-        },
-        {
-          "videoId": "b-eKsbzMr6Q",
-          "title": "嚣张",
-          "artist": "en",
-          "thumbnail": "https://lh3.googleusercontent.com/KaidXZt5LyhK8-HWtMYWRHYK9kY3unQt18Hz5te8oGDBS1VztKZ-gmeIHoFFlEKUwkkA0KR2dxgy6JND=w60-h60-l90-rj",
-          "duration": "4:14"
-        },
-        {
-          "videoId": "iR1sAex__VA",
-          "title": "Waiting For Love",
-          "artist": "Avicii",
-          "thumbnail": "https://lh3.googleusercontent.com/gNvQI_me1i5v3oXEaJCPYpjhYj5yQSObQNnKsBYTZhWqax62D6AslMc1z7Euvl2r6wnvuqWeLzFGUv5R=w60-h60-l90-rj",
+          "videoId": "h3e1wYxipHg",
+          "title": "Last Friday Night (T.G.I.F.)",
+          "artist": "Katy Perry",
+          "thumbnail": "https://lh3.googleusercontent.com/UBAvsIklBW9AakyDHYtBXN9nZlDwaZnDEWf73D8d0a4KVl5evEt0hqvUOO0CYH84RSrptF8u8qFxu1ivag=w60-h60-l90-rj",
           "duration": "3:51"
         },
         {
-          "videoId": "we9IbnUSBu4",
-          "title": "醜",
-          "artist": "草東沒有派對",
-          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w544-h544-l90-rj",
-          "duration": "1:58"
+          "videoId": "owTWCbq_nSk",
+          "title": "Something Just Like This",
+          "artist": "The Chainsmokers",
+          "thumbnail": "https://lh3.googleusercontent.com/4EoLt224zwxiPt7RIL9HgXF2VTEpUxiJxOf3X6MBChiyN24z1fUCRgX6cBGKtlN6yTYdu885qref3X02=w60-h60-l90-rj",
+          "duration": "4:08"
         },
         {
-          "videoId": "oWgwWa5GJA8",
-          "title": "鲜花（I'm Going To Remember U）",
-          "artist": "回春丹",
-          "thumbnail": "https://lh3.googleusercontent.com/dUEbLyr4VrngwHfkV1z1RV3cIOl3NYPqBT4JoIAg9SFF3aY5TZQQ96bMj4JKA6Kx2-j_MYBT9mf2Pdk=w60-h60-l90-rj",
-          "duration": "5:42"
+          "videoId": "7PA38zRrPRM",
+          "title": "Judgement",
+          "artist": "Tryhardninja",
+          "thumbnail": "https://lh3.googleusercontent.com/tMH-3t_lPtor8_R9lVaDdYwpJNtcxgDW-vH9DVXCmJYfnnlQEukTA_xzoP8sq3p2BuQczhrIY67RW1s=w60-h60-l90-rj",
+          "duration": "3:57"
+        },
+        {
+          "videoId": "xTvyyoF_LZY",
+          "title": "Shape of You",
+          "artist": "Ed Sheeran",
+          "thumbnail": "https://lh3.googleusercontent.com/TMbA3LImAL96nFkm5cI1x6LiEMvMbRg4IRxEeABd9qpXsfmwKhZHRD1MucnjG5QIsVEp0Vpn7h7M51FH3Q=w60-h60-l90-rj",
+          "duration": "3:54"
+        },
+        {
+          "videoId": "E52qnW59iEE",
+          "title": "愛人錯過",
+          "artist": "告五人",
+          "thumbnail": "https://lh3.googleusercontent.com/OpCBccm0HCPWpjLbWjSbMx9O4dC6jyUA24lQkSIfew-lbAKifCukeOCicpJSphoTQF_v4K4llViRuitysg=w60-h60-l90-rj",
+          "duration": "4:53"
+        },
+        {
+          "videoId": "S6Tkc8MT56E",
+          "title": "不該",
+          "artist": "周杰倫",
+          "thumbnail": "https://lh3.googleusercontent.com/fimhfh0keqxv7YZOl4QKuRM2LbhlhglUoTNr1qInRTkqx6DySthBmyh6ab45yF__V9ilGRD1bc-XR9p2Rw=w60-h60-l90-rj",
+          "duration": "4:51"
+        },
+        {
+          "videoId": "VJjN_yxKnL8",
+          "title": "帶我去找夜生活",
+          "artist": "告五人",
+          "thumbnail": "https://lh3.googleusercontent.com/LJPpPQrnMWzOsCv_S25YcT6299E6zhUGTHhRWwYrcm0OBmWmSuDqSt9tIgnUR8GI33R6YT2DMKKjte_c=w60-h60-l90-rj",
+          "duration": "5:00"
+        },
+        {
+          "videoId": "G1ej5up7JG0",
+          "title": "Shivers",
+          "artist": "Ed Sheeran",
+          "thumbnail": "https://lh3.googleusercontent.com/LDjFD-70y9c3aYL3-2zTUXkmlWfNlryJllQpHZLxZgi0i73pGx9JaJkNzDTo2LO9cGBDJx7E4eWdytMA=w60-h60-l90-rj",
+          "duration": "3:28"
+        },
+        {
+          "videoId": "ImXFp0B3qLE",
+          "title": "Basics in Behavior [Blue Version] (feat. Or3o)",
+          "artist": "The Living Tombstone",
+          "thumbnail": "https://lh3.googleusercontent.com/cFUZyke6IC2r8YpkdA_A9az5X8be2GRx-wTO1ePbsEclVxySa6d1pymfa--je3KjhS4kd7KqZ8HwO-LP=w60-h60-l90-rj",
+          "duration": "3:58"
+        },
+        {
+          "videoId": "CZaplDA2HKU",
+          "title": "但",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/gn-I6WOFblh_l2-bHbpstV92d5eGmubE4bo3Vqh0J3ZaNcbcm6VoA1IZ2ylOohp5iFiYN8yHacv9jFk3=w60-h60-l90-rj",
+          "duration": "2:23"
+        },
+        {
+          "videoId": "2fQ5es-qLaY",
+          "title": "爛泥",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
+          "duration": "2:30"
         },
         {
           "videoId": "GqWYJT-iMTw",
@@ -59,6 +94,195 @@
           "duration": "3:35"
         },
         {
+          "videoId": "xXnW_adLDoU",
+          "title": "野人 (躲在山里看烟火守着那烂泥坨)",
+          "artist": "Super Max",
+          "thumbnail": "https://lh3.googleusercontent.com/LH14H9yIFMcy1vQ5BxAktwoPqPxIw8cHEByuSYUYV32vaPZnn81zMI1yUz2Ng4ultQnxOFhG_pwaqUk=w60-h60-l90-rj",
+          "duration": "3:11"
+        },
+        {
+          "videoId": "1bD_2ITkGwU",
+          "title": "BANG BANG BANG",
+          "artist": "BIGBANG",
+          "thumbnail": "https://lh3.googleusercontent.com/c_TVJhHdMRfb_qPe0HqX6HVEWRpB23nK_jlfCGUYaUvmwLlFxhn4LeA_TTdzQcs2DCk5kaOlvVpy3w=w60-h60-l90-rj",
+          "duration": "3:41"
+        },
+        {
+          "videoId": "oM4KBLQRCM8",
+          "title": "Fantastic Baby",
+          "artist": "BIGBANG",
+          "thumbnail": "https://lh3.googleusercontent.com/ay5c6MEsWgxCx-81O3lmJXq1CtwsGKmP3uPju7uCq4OGyITHUOXhZyBAuD3j6a2Dk4FkjF60wEcE9-JJtA=w60-h60-l90-rj",
+          "duration": "3:51"
+        },
+        {
+          "videoId": "SB3_m1jU-BU",
+          "title": "缸",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/gn-I6WOFblh_l2-bHbpstV92d5eGmubE4bo3Vqh0J3ZaNcbcm6VoA1IZ2ylOohp5iFiYN8yHacv9jFk3=w60-h60-l90-rj",
+          "duration": "3:07"
+        },
+        {
+          "videoId": "_pD6DDmnsu0",
+          "title": "床",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/gn-I6WOFblh_l2-bHbpstV92d5eGmubE4bo3Vqh0J3ZaNcbcm6VoA1IZ2ylOohp5iFiYN8yHacv9jFk3=w60-h60-l90-rj",
+          "duration": "3:53"
+        },
+        {
+          "videoId": "ZsDwfOywo70",
+          "title": "艾蜜莉",
+          "artist": "回春丹",
+          "thumbnail": "https://lh3.googleusercontent.com/THfANO_LMJVfKaypmRAW8fd3m7Rfe-WI185YeAljWMn2-A8QvowR7rCsC0y0D1_hLby5SbeN2c9jJuGt=w60-h60-l90-rj",
+          "duration": "5:01"
+        },
+        {
+          "videoId": "NxcYNpkJYyk",
+          "title": "差一步 (DJ小魚兒 Remix)",
+          "artist": "大壮",
+          "thumbnail": "https://lh3.googleusercontent.com/ck4fjlacJbguItz_V3aFVl-oMvBe2mba3-1Twmuq4_kZF_vqbJBxUaFEpZnCxUOSaG_tNglLmyLCy6A=w60-h60-l90-rj",
+          "duration": "5:08"
+        },
+        {
+          "videoId": "CVxMTl6cUSE",
+          "title": "Gangnam Style (강남스타일)",
+          "artist": "PSY",
+          "thumbnail": "https://lh3.googleusercontent.com/_cEhL7XVzoVbxoFAYM6fSncb_6PGYcM5EUFw0tNY27hJoqz0EnqS3t2ZgSWHKxQk0eF4pC3M6ZxUIc8=w60-h60-l90-rj",
+          "duration": "3:40"
+        },
+        {
+          "videoId": "w8IbS9tUPAI",
+          "title": "如果爱忘了 (Live)",
+          "artist": "汪苏泷 & 单依纯",
+          "thumbnail": "https://lh3.googleusercontent.com/cGMrQLAAiFBMVJxRt9CVpcLp3HMlBaIu3rjtFKcNsXIvV1XaofjdMfTj-SpMybc0zswxTUL1AFgbuKPP=w60-h60-l90-rj",
+          "duration": "4:06"
+        },
+        {
+          "videoId": "ITIV1qbscvI",
+          "title": "如果愛忘了",
+          "artist": "戚薇",
+          "thumbnail": "https://lh3.googleusercontent.com/EFjbkaY2YGV8zZXxmdxXPVyMj8qNUlfP17c88pv7RgYNHd3aR5Z0ppTBm40GCyrlLVjdKjAGOcwLcHec=w60-h60-l90-rj",
+          "duration": "4:00"
+        },
+        {
+          "videoId": "0oNSHSRZNS0",
+          "title": "是想你的声音啊",
+          "artist": "傲七爷",
+          "thumbnail": "https://lh3.googleusercontent.com/yXWFVLsOCaS34h8DtdePoHcF9dVAjtZQspT0yDiQwsD8FVw4hU4CMowGSzArNO3ofcN_9555AFATuZS2=w60-h60-l90-rj",
+          "duration": "3:55"
+        },
+        {
+          "videoId": "GKusWf4Xwkk",
+          "title": "差一步",
+          "artist": "大壮",
+          "thumbnail": "https://lh3.googleusercontent.com/OGTKgmAtRPphvdYz8CI1q_CsXaEY4ElmYKqyVm0hz3DkX8G4EChRNfX6E5M0repa5Czmo330tUEPV34=w60-h60-l90-rj",
+          "duration": "4:06"
+        },
+        {
+          "videoId": "Ryf4UtwPAzI",
+          "title": "画离弦",
+          "artist": "浅影阿",
+          "thumbnail": "https://lh3.googleusercontent.com/giwFrHYHaHz_Zw956RuRL3bfakRR9Rah8VT-YeM2aYqp5jGaTzRbLgavi2Fyig3JryrLEhNJkmlrgy8K=w60-h60-l90-rj",
+          "duration": "3:38"
+        },
+        {
+          "videoId": "pcwqPzQsTjA",
+          "title": "莫问归期",
+          "artist": "蒋雪儿Snow.J",
+          "thumbnail": "https://lh3.googleusercontent.com/NVBCc23DaIcfAwHLNiULyNdBeOPDSvPyZkDB0s8C0bmyfDBgH2crqWJgRgzwDLa6sVId8nKq9BhfqrQ=w60-h60-l90-rj",
+          "duration": "3:40"
+        },
+        {
+          "videoId": "9LYCjFnwrcw",
+          "title": "Take Me to Infinity (Radio Edit)",
+          "artist": "Consoul Trainin",
+          "thumbnail": "https://lh3.googleusercontent.com/3V5xdvzmeP1LLtOYpt0ID_D8QQgv5lSOZhzhm7wb22NmKBzLG8OcBYYHL00-ZhtFlNKrC8j3XakA0_llhg=w60-h60-l90-rj",
+          "duration": "3:28"
+        },
+        {
+          "videoId": "oWgwWa5GJA8",
+          "title": "鲜花（I'm Going To Remember U）",
+          "artist": "回春丹",
+          "thumbnail": "https://lh3.googleusercontent.com/dUEbLyr4VrngwHfkV1z1RV3cIOl3NYPqBT4JoIAg9SFF3aY5TZQQ96bMj4JKA6Kx2-j_MYBT9mf2Pdk=w60-h60-l90-rj",
+          "duration": "5:42"
+        },
+        {
+          "videoId": "gE1F1CVExhg",
+          "title": "帥到分手",
+          "artist": "周湯豪",
+          "thumbnail": "https://lh3.googleusercontent.com/p8KNex9pIxG4HaAUbAIkXy4dbQXCVCDq7leGNTaIMv-7sAmjjKR6HW0Z83h5cNacucGh9oXvbtQYAj0V7A=w60-h60-l90-rj",
+          "duration": "3:40"
+        },
+        {
+          "videoId": "pr8k4LdgxAM",
+          "title": "New Thang",
+          "artist": "Redfoo",
+          "thumbnail": "https://lh3.googleusercontent.com/VXNc0KvcOGIeRPD7a1bIEo4KklGgPa2CYTAlRE9Ox6kL78oXoI_k409h9-fQLwEtJzWXCCmL0hhCDpH9=w60-h60-l90-rj",
+          "duration": "3:47"
+        },
+        {
+          "videoId": "we9IbnUSBu4",
+          "title": "醜",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w544-h544-l90-rj",
+          "duration": "1:58"
+        },
+        {
+          "videoId": "R_BO8C05XLA",
+          "title": "Radioactive",
+          "artist": "Imagine Dragons",
+          "thumbnail": "https://lh3.googleusercontent.com/q5PWa2JVJApX31A7QU2vE4RY8i5S_ofYbfpxgDjhz5fagMAxv8ROkEpUr2OAYgYrhzYqJpv0bV94DRCb=w60-h60-l90-rj",
+          "duration": "3:07"
+        },
+        {
+          "videoId": "b-eKsbzMr6Q",
+          "title": "嚣张",
+          "artist": "en",
+          "thumbnail": "https://lh3.googleusercontent.com/KaidXZt5LyhK8-HWtMYWRHYK9kY3unQt18Hz5te8oGDBS1VztKZ-gmeIHoFFlEKUwkkA0KR2dxgy6JND=w60-h60-l90-rj",
+          "duration": "4:14"
+        },
+        {
+          "videoId": "ruZjcOwBwV0",
+          "title": "勇敢的人",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
+          "duration": "3:41"
+        },
+        {
+          "videoId": "iR1sAex__VA",
+          "title": "Waiting For Love",
+          "artist": "Avicii",
+          "thumbnail": "https://lh3.googleusercontent.com/gNvQI_me1i5v3oXEaJCPYpjhYj5yQSObQNnKsBYTZhWqax62D6AslMc1z7Euvl2r6wnvuqWeLzFGUv5R=w60-h60-l90-rj",
+          "duration": "3:51"
+        },
+        {
+          "videoId": "_GWKkqNoyEA",
+          "title": "Counting Stars",
+          "artist": "OneRepublic",
+          "thumbnail": "https://lh3.googleusercontent.com/m2pZLjozMvQBj21LgvAIslVPP-T2xQlxbxCTJ98vpPN8HZ0fgR-wisJQ2IzrKS2yLTAYBjs0TpOYnIY=w60-h60-l90-rj",
+          "duration": "4:18"
+        },
+        {
+          "videoId": "jHVZAcF5_6g",
+          "title": "山海",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
+          "duration": "4:12"
+        },
+        {
+          "videoId": "fovT1WfBlU0",
+          "title": "原來你跟每個人都說著一樣的話",
+          "artist": "怕胖團",
+          "thumbnail": "https://lh3.googleusercontent.com/dsutHz7W5jGCXy0TZmvhV-slwD5Tevn_yAo1jOmMuQloEXB9EicwZlMtFZRfm5c5LyX4EgShUucQNYgFFw=w60-h60-l90-rj",
+          "duration": "3:59"
+        },
+        {
+          "videoId": "eU88zXiVlKA",
+          "title": "The Fog Space",
+          "artist": "Guo Ding",
+          "thumbnail": "https://lh3.googleusercontent.com/k1ZcPheqeIrd6-rGreYZSv1z9ZepzaWzXrnKBQFAjQ43R0Ct2ykbY9i944SgbU6_orNVeP2f5-DZk0wFPw=w60-h60-l90-rj",
+          "duration": "4:11"
+        },
+        {
           "videoId": "gPfmCw3UveY",
           "title": "Television / So Far So Good",
           "artist": "Rex Orange County",
@@ -66,11 +290,11 @@
           "duration": "4:23"
         },
         {
-          "videoId": "_pD6DDmnsu0",
-          "title": "床",
-          "artist": "草東沒有派對",
-          "thumbnail": "https://lh3.googleusercontent.com/gn-I6WOFblh_l2-bHbpstV92d5eGmubE4bo3Vqh0J3ZaNcbcm6VoA1IZ2ylOohp5iFiYN8yHacv9jFk3=w120-h120-l90-rj",
-          "duration": "3:53"
+          "videoId": "pDFgm2YNIic",
+          "title": "与我无关",
+          "artist": "阿冗",
+          "thumbnail": "https://lh3.googleusercontent.com/iM0JnPr0Io-Bc2KJVyhbZKfEg3JH_XkYGKCqf8kPZh3cea_Bubl9NthIRHiuIcKzoNLsSeE8Tgpa7C7IVg=w60-h60-l90-rj",
+          "duration": "4:00"
         },
         {
           "videoId": "_OhErmVm1Ao",
@@ -80,6 +304,34 @@
           "duration": "4:10"
         },
         {
+          "videoId": "IoKn3SoD2pM",
+          "title": "大風吹",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w60-h60-l90-rj",
+          "duration": "3:57"
+        },
+        {
+          "videoId": "RzDdTWLiXw0",
+          "title": "鬼",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
+          "duration": "2:41"
+        },
+        {
+          "videoId": "X8BK7Dq7PG4",
+          "title": "我們",
+          "artist": "草東沒有派對",
+          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
+          "duration": "3:39"
+        },
+        {
+          "videoId": "Wzv2duKuwnU",
+          "title": "野人",
+          "artist": "孟维来",
+          "thumbnail": "https://lh3.googleusercontent.com/mzN9E52JGsN6Hwxa7mwybOhZxtLHINlDseyiC_mjkVHvCHk6LWOO6uzY07C4AooE29-AfZXdTVK8kBU=w60-h60-l90-rj",
+          "duration": "3:18"
+        },
+        {
           "videoId": "sItQ5kruw3M",
           "title": "嘻哈庄腳情",
           "artist": "玖壹壹 & Lulu",
@@ -87,11 +339,32 @@
           "duration": "3:41"
         },
         {
-          "videoId": "fovT1WfBlU0",
-          "title": "原來你跟每個人都說著一樣的話",
-          "artist": "怕胖團",
-          "thumbnail": "https://lh3.googleusercontent.com/dsutHz7W5jGCXy0TZmvhV-slwD5Tevn_yAo1jOmMuQloEXB9EicwZlMtFZRfm5c5LyX4EgShUucQNYgFFw=w60-h60-l90-rj",
-          "duration": "3:59"
+          "videoId": "QL68Vx2GLws",
+          "title": "Meet Her At Tomorrow (feat. Dimitri Vegas & Like Mike)",
+          "artist": "Redfoo",
+          "thumbnail": "https://lh3.googleusercontent.com/VXNc0KvcOGIeRPD7a1bIEo4KklGgPa2CYTAlRE9Ox6kL78oXoI_k409h9-fQLwEtJzWXCCmL0hhCDpH9=w120-h120-l90-rj",
+          "duration": "4:02"
+        },
+        {
+          "videoId": "2hmJpKvHGw4",
+          "title": "Akage (赤毛)",
+          "artist": "Smilybruh",
+          "thumbnail": "https://lh3.googleusercontent.com/6VvKN_k63sKSOwKgFviWqP6msBc5o8L43DJmJHkNBvOLgH3fbv-u9NMX1GJ2esDhhkiNyaxyIzAjqj-pJg=w60-h60-l90-rj",
+          "duration": "2:18"
+        },
+        {
+          "videoId": "Mt2nVpsj0BU",
+          "title": "Let's Get Ridiculous",
+          "artist": "Redfoo",
+          "thumbnail": "https://lh3.googleusercontent.com/c7iQkSq3LauQo0-HOVMPCoGDwq4M0FK-hQQm4kMnR7Kvhf62YGNvBJLCFcArPKoIrPdjoRI3lo50iwk=w120-h120-l90-rj",
+          "duration": "3:36"
+        },
+        {
+          "videoId": "_3FAwIg9YV8",
+          "title": "清明上河圖",
+          "artist": "小悠",
+          "thumbnail": "https://lh3.googleusercontent.com/2mw8XPCrlA-_PlX6MQ98F3PJdiC3psnUgr9V-2EVbV-IYT7I9dVXDPbCzzc5tv9Xm1NWGyL4nu3W6vxn=w60-h60-l90-rj",
+          "duration": "4:34"
         },
         {
           "videoId": "GKvJJ6kfStU",
@@ -106,41 +379,6 @@
           "artist": "Nakama",
           "thumbnail": "https://lh3.googleusercontent.com/hsxflCF--GIjXPmWDO7lssf4NSt4j__v1SwOPa_bvBH85H4_EePffX0vVDtcxMpCoeMC_UREWPeXSMiF=w60-h60-l90-rj",
           "duration": "1:16"
-        },
-        {
-          "videoId": "pr8k4LdgxAM",
-          "title": "New Thang",
-          "artist": "Redfoo",
-          "thumbnail": "https://lh3.googleusercontent.com/VXNc0KvcOGIeRPD7a1bIEo4KklGgPa2CYTAlRE9Ox6kL78oXoI_k409h9-fQLwEtJzWXCCmL0hhCDpH9=w60-h60-l90-rj",
-          "duration": "3:47"
-        },
-        {
-          "videoId": "jHVZAcF5_6g",
-          "title": "山海",
-          "artist": "草東沒有派對",
-          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
-          "duration": "4:12"
-        },
-        {
-          "videoId": "pDFgm2YNIic",
-          "title": "与我无关",
-          "artist": "阿冗",
-          "thumbnail": "https://lh3.googleusercontent.com/iM0JnPr0Io-Bc2KJVyhbZKfEg3JH_XkYGKCqf8kPZh3cea_Bubl9NthIRHiuIcKzoNLsSeE8Tgpa7C7IVg=w60-h60-l90-rj",
-          "duration": "4:00"
-        },
-        {
-          "videoId": "gE1F1CVExhg",
-          "title": "帥到分手",
-          "artist": "周湯豪",
-          "thumbnail": "https://lh3.googleusercontent.com/p8KNex9pIxG4HaAUbAIkXy4dbQXCVCDq7leGNTaIMv-7sAmjjKR6HW0Z83h5cNacucGh9oXvbtQYAj0V7A=w60-h60-l90-rj",
-          "duration": "3:40"
-        },
-        {
-          "videoId": "IoKn3SoD2pM",
-          "title": "大風吹",
-          "artist": "草東沒有派對",
-          "thumbnail": "https://lh3.googleusercontent.com/FjwFq3jbqx9DacHJSxCrHSUUjZoq9qZaoNgETH3Nj57HQ-1Nrf8FFD6474I67aJqdsZgs4zAOagwER2a=w120-h120-l90-rj",
-          "duration": "3:57"
         }
       ],
       "likes": [
@@ -186,6 +424,104 @@
     "比利": {
       "history": [
         {
+          "videoId": "sclX7d6quvE",
+          "title": "想你的夜 (未眠版) - Miss You Tonight (Sleepless Version)",
+          "artist": "Grady Guan",
+          "thumbnail": "https://lh3.googleusercontent.com/729HiA2wjCSHbD4OjZ7rKn9vOrkFei7Hk8z1KDJYL_saN2kl9CZletP-AKO-vX4uIaOMDZOXMXCQhGJhBg=w60-h60-l90-rj",
+          "duration": "4:45"
+        },
+        {
+          "videoId": "N-MGYahfvyA",
+          "title": "我還是愛著你",
+          "artist": "MP魔幻力量",
+          "thumbnail": "https://lh3.googleusercontent.com/mYz2Cn6-R8NS7bqz4oBgJSQW4-NfGX0ujzkLzJXm_vkcjhfG6IH0etQq9LeCSxZfI-wlHJdQElWGiqU=w60-h60-l90-rj",
+          "duration": "4:42"
+        },
+        {
+          "videoId": "DMz5lN8ufqs",
+          "title": "莫愁乡",
+          "artist": "亞細亞曠世奇才",
+          "thumbnail": "https://lh3.googleusercontent.com/82RbSo3K3Y15KUkSEG0Adg1hB1o0nALcaSFosGKWUtb53cWlOkxPK5EZX4sKRtCbQ7eEaHYRq43qaX4=w60-h60-l90-rj",
+          "duration": "2:17"
+        },
+        {
+          "videoId": "OVRDUjxTNNw",
+          "title": "仗着",
+          "artist": "陈壹千",
+          "thumbnail": "https://lh3.googleusercontent.com/dkuo30LmfDc4RjrjadbdHolBoQ6qlgbP4xy-3KhkSrEP1yeG7fA0M8lliZkI_GVpSurv73upLVepJTp2=w60-h60-l90-rj",
+          "duration": "3:39"
+        },
+        {
+          "videoId": "LM9uN7IlKSI",
+          "title": "偷偷愛",
+          "artist": "美秀集團",
+          "thumbnail": "https://lh3.googleusercontent.com/ZSA5PNkI5LvnsJeVgctwUI8LHpqmQgA4sxB-9toKBDSKq2ew4EEguKmqC1K4BlCusvp0yHIpKYUwYCdhDA=w60-h60-l90-rj",
+          "duration": "4:23"
+        },
+        {
+          "videoId": "hJgNk638UQ4",
+          "title": "他們朝我扔白菜",
+          "artist": "子虛烏有",
+          "thumbnail": "https://lh3.googleusercontent.com/ZNy03vcDW_xxrCk444-6fHA76b1tznVyGlYiLWTEwZJCjZTGQOr0l60e7TFgFTIZ7l9g1pu615M-YvNW=w60-h60-l90-rj",
+          "duration": "2:37"
+        },
+        {
+          "videoId": "XYW-tDY7X_8",
+          "title": "戀人",
+          "artist": "美秀集團",
+          "thumbnail": "https://lh3.googleusercontent.com/XOn0vL3laP1lAiLXRs_0gzNPT3BF_4l99Rz0H_lGJsATE92m9tpJfapezp_7NJhZ4AaVD1F8Ia2fW8m9=w60-h60-l90-rj",
+          "duration": "4:14"
+        },
+        {
+          "videoId": "_OhErmVm1Ao",
+          "title": "越來越不懂",
+          "artist": "蔡健雅",
+          "thumbnail": "https://lh3.googleusercontent.com/0tN2MbUOmKiTRm4gmAHm2sgU4cdhFnxDjgXV4o99Vcy_4aai_28oUrG38snCpRoIAm-aYF8EK9zUHjgc=w60-h60-l90-rj",
+          "duration": "4:10"
+        },
+        {
+          "videoId": "3f8cuG4b-9A",
+          "title": "你那麼愛她 - You Love Her So Much",
+          "artist": "Sam Lee",
+          "thumbnail": "https://lh3.googleusercontent.com/XkcB2ui40KwDF5287WVz1akybrrWFqi9HdQ8qqL3X3Pa6kY_uV1KytRBtYZCJXrWVQUtCn02ljNJH6sGvQ=w60-h60-l90-rj",
+          "duration": "4:18"
+        },
+        {
+          "videoId": "LgNT-a_ekC8",
+          "title": "無名的人（電影《雄獅少年》主題曲）",
+          "artist": "毛不易",
+          "thumbnail": "https://lh3.googleusercontent.com/1esVwQvn6BHjFvwAAdLJte1e2-FgkitQ1IXmdPLbto4WnKCE5yQaVy3r0laGA9awdPakhNgEBMyT1feF=w60-h60-l90-rj",
+          "duration": "4:43"
+        },
+        {
+          "videoId": "E2J2crT04Ko",
+          "title": "租购",
+          "artist": "薛之谦",
+          "thumbnail": "https://lh3.googleusercontent.com/c3UMD6QnFUsEv72zgZACDJYJd3HwWx3fxsYPRXvMtG2nTTtJl7WiQ22hXzNgM8XUUmtlwuiHnHCJoLas=w120-h120-l90-rj",
+          "duration": "4:31"
+        },
+        {
+          "videoId": "qf-HqgxIotA",
+          "title": "麒麟",
+          "artist": "早安",
+          "thumbnail": "https://lh3.googleusercontent.com/KlFfsWxFV3gJGogJ4NLrojGXrTs7sqzpmTiBYZQlkZyiMBKD8x0I6RD_eBFvU8-8VsqTQXoof1SHxaYs=w60-h60-l90-rj",
+          "duration": "3:09"
+        },
+        {
+          "videoId": "kqL2jh06wsk",
+          "title": "感谢你曾来过",
+          "artist": "Ayo97",
+          "thumbnail": "https://lh3.googleusercontent.com/BM5yUJtbQ5MoZmu3-2WbbrC5FHn1ijKBS1EXp5zPIGj9siYXKlwzDYp_-wC_YDhql4mGuWSgHhlLQG4=w60-h60-l90-rj",
+          "duration": "3:57"
+        },
+        {
+          "videoId": "8Its_2KkbcM",
+          "title": "毒藥",
+          "artist": "蕭秉治",
+          "thumbnail": "https://lh3.googleusercontent.com/spJaj0llTcpYnYDX8lyBEJUVBmCvIW2cSkSxfShb2PgEb6ABXcvqHgUuFJs-JbkP0qk26_JSnFhHTH-5=w60-h60-s-l90-rj",
+          "duration": "3:26"
+        },
+        {
           "videoId": "y9IMbT00178",
           "title": "暮色迴響",
           "artist": "吉星出租",
@@ -207,6 +543,123 @@
           "duration": "3:34"
         }
       ],
+      "likes": []
+    },
+    "cheers beer": {
+      "history": [],
+      "likes": []
+    },
+    "cheer beers": {
+      "history": [],
+      "likes": []
+    },
+    "cheers": {
+      "history": [],
+      "likes": []
+    },
+    "cheers bear": {
+      "history": [
+        {
+          "videoId": "O0yuPJuHUUk",
+          "title": "ほぼ水の泡 - cheers beer",
+          "artist": "Sheena Ringo",
+          "thumbnail": "https://lh3.googleusercontent.com/M2lrVqWJJh0Kzf2h1UYBwWpLyb-ob8V38tJEOITselByBpLjrz0wjfJ8bMrU-vOA7zH5eVTdBlA3eJw=w60-h60-l90-rj",
+          "duration": "3:19"
+        }
+      ],
+      "likes": []
+    },
+    "租購": {
+      "history": [
+        {
+          "videoId": "3zh9Wb1KuW8",
+          "title": "死ぬのがいいわ - Shinunoga E-Wa",
+          "artist": "Fujii Kaze",
+          "thumbnail": "https://lh3.googleusercontent.com/R4k8Fj3T1Y-LvlSrMIY6ekpKg5OviQqzaNTq4WoL2QHwBjc6C0CHOMl7R8Kbdyj8atWWkpsYi1HPCbnU=w60-h60-l90-rj",
+          "duration": "3:06"
+        },
+        {
+          "videoId": "cT9BpvksehY",
+          "title": "煎熬 - Suffering",
+          "artist": "Jess Lee",
+          "thumbnail": "https://lh3.googleusercontent.com/32MlhyCWAg28M9sOQYAfup2LYhi18Whq7-0pkb6I7S60H7AE86JHMPWrl9ou0oS9FhPuDB9oFkaNMRg=w60-h60-l90-rj",
+          "duration": "4:23"
+        },
+        {
+          "videoId": "LslhNS5NK0w",
+          "title": "租購",
+          "artist": "薛之謙",
+          "thumbnail": "https://lh3.googleusercontent.com/_dtMUtTUNBHOuWXr7MZ7vL2Vf4o-CyRLqPdVOx2jfUpxDb6x80wWAWtOj2oCcV-hCGgFkE11fICA4V4=w60-h60-l90-rj",
+          "duration": "4:16"
+        }
+      ],
+      "likes": []
+    },
+    "育瑄大美女": {
+      "history": [
+        {
+          "videoId": "JdJzsp96x0E",
+          "title": "可不可以",
+          "artist": "张紫豪",
+          "thumbnail": "https://lh3.googleusercontent.com/qX5MaqAgUxskskt8UBWE2RPH-zs2cuBNo4OvZagVWTc8RIZZ2QCnlLAyjCgyg-1J09JDe59ynPCJpzPL=w60-h60-l90-rj",
+          "duration": "4:01"
+        },
+        {
+          "videoId": "VjcqbpQTwO4",
+          "title": "城裡的月光",
+          "artist": "許美靜",
+          "thumbnail": "https://lh3.googleusercontent.com/4wxBZkuir7FEzso1pQm-RYZcbjDWa8GP3vJYIHWbMhJpf1KjLQDbeGiqC261MR1hkVFnjT0WIUgxkYlF=w60-h60-l90-rj",
+          "duration": "5:22"
+        },
+        {
+          "videoId": "ITIV1qbscvI",
+          "title": "如果愛忘了",
+          "artist": "戚薇",
+          "thumbnail": "https://lh3.googleusercontent.com/EFjbkaY2YGV8zZXxmdxXPVyMj8qNUlfP17c88pv7RgYNHd3aR5Z0ppTBm40GCyrlLVjdKjAGOcwLcHec=w60-h60-l90-rj",
+          "duration": "4:00"
+        },
+        {
+          "videoId": "MirexJxv9PE",
+          "title": "雨愛 - Yu Ai",
+          "artist": "Rainie Yang",
+          "thumbnail": "https://lh3.googleusercontent.com/NGRpTBuhzFfsExxHqif6afpHZYiQV-Bl_nb55_7zskBAoIjn653TgXxUXyMu-FUPEIF5aveFtwqocL8=w60-h60-l90-rj",
+          "duration": "4:22"
+        },
+        {
+          "videoId": "fKcxM0kWqWc",
+          "title": "紅色高跟鞋",
+          "artist": "蔡健雅",
+          "thumbnail": "https://lh3.googleusercontent.com/sOTdzMv4AjOTBJ0Kro55TJ5z18S7z0mJE4ddALdUZTE4K0Mn2NaXVtuMJnVtMaXv_HXuN99Iu3s1iCI=w60-h60-l90-rj",
+          "duration": "3:27"
+        },
+        {
+          "videoId": "wfQQVHbuER8",
+          "title": "Never Turn Back (The theme song of The Legend Of Three Kingdoms M)",
+          "artist": "Power Station",
+          "thumbnail": "https://lh3.googleusercontent.com/NAZvTtrK_HaP0oygNxl3wiM8ySjot1MVrev0627uGT73FPHwzhVSwpcVKW8M0fYs7HtlLVk0hZ39lq8u=w60-h60-l90-rj",
+          "duration": "5:06"
+        }
+      ],
+      "likes": []
+    },
+    "單身情歌": {
+      "history": [],
+      "likes": []
+    },
+    "安靜的美好": {
+      "history": [
+        {
+          "videoId": "ar3VgCgRFiA",
+          "title": "安靜的美好",
+          "artist": "康士坦的變化球",
+          "thumbnail": "https://lh3.googleusercontent.com/YHIhhEVED3sriHyv59K5TcmE99zal1vuX0jTywr13z6efcMmgAWOWJ5f8i_4xqLX9lIl1mmb8o_bjMA=w60-h60-l90-rj",
+          "duration": "3:55"
+        }
+      ],
+      "likes": []
+    },
+    "Dx": {
+      "history": [],
       "likes": []
     }
   }
