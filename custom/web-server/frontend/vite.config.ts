@@ -82,6 +82,8 @@
         '/user': { target: BACKEND, changeOrigin: true },
         '/config': { target: BACKEND, changeOrigin: true },
         '/public-links': { target: BACKEND, changeOrigin: true },
+        '/lyrics': { target: BACKEND, changeOrigin: true },
+        '/current-lyrics': { target: BACKEND, changeOrigin: true },
       },
     },
   });

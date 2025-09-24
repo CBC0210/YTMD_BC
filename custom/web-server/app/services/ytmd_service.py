@@ -225,6 +225,277 @@ class YTMDService:
             logger.error(f"Request to YTMD failed: {e}")
             raise Exception('YTMD connection failed')
     
+    def get_lyrics(self, video_id: str, title: str = "", artist: str = "") -> Dict[str, Any]:
+        """獲取指定歌曲的歌詞"""
+        try:
+            # 嘗試從多個來源獲取歌詞，按優先級順序
+            providers = [
+                ('ytmusic', self._get_lyrics_from_ytmusic),
+                ('lrclib', self._get_lyrics_from_lrclib),
+                ('genius', self._get_lyrics_from_genius),
+                ('musixmatch', self._get_lyrics_from_musixmatch),
+            ]
+            
+            for provider_name, provider_func in providers:
+                try:
+                    lyrics_data = provider_func(video_id, title, artist)
+                    if lyrics_data and (lyrics_data.get('lyrics') or lyrics_data.get('lines')):
+                        logger.info(f"Got lyrics from {provider_name} for {title} - {artist}")
+                        return lyrics_data
+                except Exception as e:
+                    logger.warning(f"{provider_name} failed: {e}")
+                    continue
+            
+            # 如果都沒有找到，返回空結果
+            return {
+                'title': title,
+                'artists': [artist] if artist else [],
+                'lyrics': None,
+                'lines': None,
+                'source': 'none'
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get lyrics: {e}")
+            return {
+                'title': title,
+                'artists': [artist] if artist else [],
+                'lyrics': None,
+                'lines': None,
+                'source': 'error',
+                'error': str(e)
+            }
+    
+    def _get_lyrics_from_ytmusic(self, video_id: str, title: str, artist: str) -> Dict[str, Any]:
+        """從 YouTube Music 原生獲取歌詞"""
+        try:
+            # 嘗試通過 YTMD 的內部 API 獲取歌詞
+            # 這需要 YTMD 的 synced-lyrics 插件支援
+            response = requests.get(f'{self.base_url}/lyrics/{video_id}', timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('lyrics') or data.get('lines'):
+                    return {
+                        'title': title,
+                        'artists': [artist],
+                        'lyrics': data.get('lyrics'),
+                        'lines': data.get('lines'),
+                        'source': 'ytmusic'
+                    }
+        except Exception as e:
+            logger.debug(f"YouTube Music lyrics not available: {e}")
+        
+        return None
+    
+    def _get_lyrics_from_lrclib(self, video_id: str, title: str, artist: str) -> Dict[str, Any]:
+        """從 LRCLib 獲取歌詞"""
+        if not title or not artist:
+            return None
+            
+        # LRCLib API 搜尋
+        search_params = {
+            'artist_name': artist,
+            'track_name': title
+        }
+        
+        search_url = 'https://lrclib.net/api/search'
+        response = requests.get(search_url, params=search_params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data and len(data) > 0:
+                # 取第一個結果
+                track = data[0]
+                track_id = track.get('id')
+                
+                if track_id:
+                    # 獲取歌詞詳情
+                    lyrics_url = f'https://lrclib.net/api/get/{track_id}'
+                    lyrics_response = requests.get(lyrics_url, timeout=10)
+                    
+                    if lyrics_response.status_code == 200:
+                        lyrics_data = lyrics_response.json()
+                        
+                        # 解析 LRC 格式的歌詞
+                        lrc_text = lyrics_data.get('syncedLyrics', '')
+                        if lrc_text:
+                            lines = self._parse_lrc_lyrics(lrc_text)
+                            return {
+                                'title': lyrics_data.get('trackName', title),
+                                'artists': [lyrics_data.get('artistName', artist)],
+                                'lyrics': None,
+                                'lines': lines,
+                                'source': 'lrclib'
+                            }
+        
+        return None
+    
+    def _get_lyrics_from_genius(self, video_id: str, title: str, artist: str) -> Dict[str, Any]:
+        """從 Genius 獲取歌詞"""
+        if not title or not artist:
+            return None
+            
+        try:
+            # Genius 搜尋 API
+            search_params = {
+                'q': f"{artist} {title}",
+                'page': '1',
+                'per_page': '10'
+            }
+            
+            search_url = 'https://genius.com/api/search/song'
+            response = requests.get(search_url, params=search_params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                hits = data.get('response', {}).get('sections', [{}])[0].get('hits', [])
+                
+                if hits:
+                    # 取第一個結果
+                    song_data = hits[0].get('result', {})
+                    song_path = song_data.get('path')
+                    
+                    if song_path:
+                        # 獲取歌詞頁面
+                        lyrics_url = f'https://genius.com{song_path}'
+                        lyrics_response = requests.get(lyrics_url, timeout=10)
+                        
+                        if lyrics_response.status_code == 200:
+                            # 簡單解析 HTML 獲取歌詞
+                            import re
+                            html_content = lyrics_response.text
+                            
+                            # 嘗試從 JSON 數據中提取歌詞
+                            json_match = re.search(r'window\.__PRELOADED_STATE__ = JSON\.parse\(\'(.*?)\'\);', html_content)
+                            if json_match:
+                                import json
+                                try:
+                                    preloaded_data = json.loads(json_match.group(1).replace('\\"', '"'))
+                                    # 這裡需要根據實際的 JSON 結構來解析歌詞
+                                    # 由於 Genius 的結構複雜，暫時返回基本資訊
+                                    return {
+                                        'title': song_data.get('title', title),
+                                        'artists': [song_data.get('primary_artist', {}).get('name', artist)],
+                                        'lyrics': None,  # 需要更複雜的解析
+                                        'lines': None,
+                                        'source': 'genius'
+                                    }
+                                except:
+                                    pass
+                            
+                            # 備用方法：從 HTML 中提取歌詞
+                            lyrics_match = re.search(r'<div[^>]*class="[^"]*lyrics[^"]*"[^>]*>(.*?)</div>', html_content, re.DOTALL)
+                            if lyrics_match:
+                                lyrics_html = lyrics_match.group(1)
+                                # 簡單清理 HTML 標籤
+                                lyrics_text = re.sub(r'<[^>]+>', '', lyrics_html)
+                                lyrics_text = re.sub(r'\s+', ' ', lyrics_text).strip()
+                                
+                                if lyrics_text:
+                                    return {
+                                        'title': song_data.get('title', title),
+                                        'artists': [song_data.get('primary_artist', {}).get('name', artist)],
+                                        'lyrics': lyrics_text,
+                                        'lines': None,
+                                        'source': 'genius'
+                                    }
+        except Exception as e:
+            logger.debug(f"Genius lyrics failed: {e}")
+        
+        return None
+    
+    def _get_lyrics_from_musixmatch(self, video_id: str, title: str, artist: str) -> Dict[str, Any]:
+        """從 MusixMatch 獲取歌詞（簡化版本）"""
+        if not title or not artist:
+            return None
+            
+        try:
+            # MusixMatch 需要複雜的認證和 API 調用
+            # 這裡實現一個簡化版本，使用公開的搜尋功能
+            
+            # 構建搜尋 URL
+            search_query = f"{artist} {title}".replace(' ', '+')
+            search_url = f"https://www.musixmatch.com/search/{search_query}"
+            
+            response = requests.get(search_url, timeout=10, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            })
+            
+            if response.status_code == 200:
+                # 簡單解析 HTML 找到歌曲連結
+                import re
+                html_content = response.text
+                
+                # 尋找歌曲連結
+                song_links = re.findall(r'href="(/lyrics/[^"]+)"', html_content)
+                if song_links:
+                    # 取第一個結果
+                    song_url = f"https://www.musixmatch.com{song_links[0]}"
+                    
+                    # 獲取歌詞頁面
+                    lyrics_response = requests.get(song_url, timeout=10, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    })
+                    
+                    if lyrics_response.status_code == 200:
+                        lyrics_html = lyrics_response.text
+                        
+                        # 提取歌詞內容
+                        lyrics_match = re.search(r'<span[^>]*class="[^"]*lyrics__content__[^"]*"[^>]*>(.*?)</span>', lyrics_html, re.DOTALL)
+                        if lyrics_match:
+                            lyrics_text = lyrics_match.group(1)
+                            # 清理 HTML 標籤
+                            lyrics_text = re.sub(r'<[^>]+>', '', lyrics_text)
+                            lyrics_text = re.sub(r'\s+', ' ', lyrics_text).strip()
+                            
+                            if lyrics_text:
+                                return {
+                                    'title': title,
+                                    'artists': [artist],
+                                    'lyrics': lyrics_text,
+                                    'lines': None,
+                                    'source': 'musixmatch'
+                                }
+        except Exception as e:
+            logger.debug(f"MusixMatch lyrics failed: {e}")
+        
+        return None
+    
+    def _parse_lrc_lyrics(self, lrc_text: str) -> List[Dict[str, Any]]:
+        """解析 LRC 格式的歌詞"""
+        lines = []
+        
+        for line in lrc_text.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+                
+            # 匹配時間標記 [mm:ss.xx]
+            import re
+            time_match = re.match(r'\[(\d{2}):(\d{2})\.(\d{2})\]', line)
+            if time_match:
+                minutes = int(time_match.group(1))
+                seconds = int(time_match.group(2))
+                centiseconds = int(time_match.group(3))
+                
+                time_in_ms = (minutes * 60 + seconds) * 1000 + centiseconds * 10
+                time_str = f"{minutes:02d}:{seconds:02d}.{centiseconds:02d}"
+                
+                # 提取歌詞文字
+                text = line[time_match.end():].strip()
+                
+                if text:
+                    lines.append({
+                        'time': time_str,
+                        'timeInMs': time_in_ms,
+                        'duration': 2000,  # 預設持續時間 2 秒
+                        'text': text,
+                        'status': 'upcoming'
+                    })
+        
+        return lines
+
     def is_connected(self) -> bool:
         """檢查 YTMD API 是否可用"""
         try:

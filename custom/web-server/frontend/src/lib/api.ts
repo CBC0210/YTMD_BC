@@ -67,6 +67,10 @@ export const api = {
     unlike: (nickname: string, videoId: string) => j<void>(`/user/${encodeURIComponent(nickname)}/likes`, { method: 'DELETE', body: JSON.stringify({ videoId }) }),
     recommendations: (nickname: string) => j<any[]>(`/user/${encodeURIComponent(nickname)}/recommendations`),
   },
+  lyrics: {
+    get: (videoId: string) => j<{ success: boolean; data?: any; message?: string }>(`/lyrics/${encodeURIComponent(videoId)}`),
+    getCurrent: () => j<{ success: boolean; data?: any; message?: string }>('/current-lyrics'),
+  },
 };
 
 export async function raw<T>(path: string, init?: RequestInit): Promise<T> {

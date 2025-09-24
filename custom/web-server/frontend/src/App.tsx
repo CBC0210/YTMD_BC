@@ -31,6 +31,7 @@ import {
   Heart,
   RefreshCw,
   X,
+  FileText,
 } from "lucide-react";
 import { api } from "./lib/api";
 
@@ -47,6 +48,22 @@ interface Song {
 interface QueueItem extends Song {
   status: "playing" | "queued";
   queuePosition: number;
+}
+
+interface LyricLine {
+  time: string;
+  timeInMs: number;
+  duration: number;
+  text: string;
+  status: 'previous' | 'current' | 'upcoming';
+}
+
+interface LyricResult {
+  title: string;
+  artists: string[];
+  lyrics?: string;
+  lines?: LyricLine[];
+  source?: string;
 }
 
 type QueueRowProps = {
@@ -186,6 +203,12 @@ export default function App() {
   const [infoMsg, setInfoMsg] = useState<string>("");
   const [toastMsg, setToastMsg] = useState<string>("");
   const toastTimerRef = useRef<number | null>(null);
+  
+  // 歌詞相關狀態
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [lyricsData, setLyricsData] = useState<LyricResult | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [lyricsError, setLyricsError] = useState<string | null>(null);
 
   // 以上 mock 範例資料已移除，改由 API 取得
 
@@ -228,6 +251,43 @@ export default function App() {
     searchAbortRef.current?.abort();
     setSearchQuery("");
     setSearchResults([]);
+  };
+
+  // 獲取歌詞
+  const fetchLyrics = async (videoId: string) => {
+    if (!videoId) return;
+    
+    setLyricsLoading(true);
+    setLyricsError(null);
+    
+    try {
+      const response = await fetch(`/lyrics/${encodeURIComponent(videoId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setLyricsData(data.data);
+        } else {
+          setLyricsError(data.message || '未找到歌詞');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setLyricsError(errorData.message || '獲取歌詞失敗');
+      }
+    } catch (error) {
+      setLyricsError('獲取歌詞失敗');
+      console.error('Lyrics fetch error:', error);
+    } finally {
+      setLyricsLoading(false);
+    }
+  };
+
+  // 打開歌詞視圖
+  const openLyrics = () => {
+    const currentSong = getCurrentSong();
+    if (currentSong?.videoId) {
+      fetchLyrics(currentSong.videoId);
+      setShowLyrics(true);
+    }
   };
 
   // 顯示加入按鈕文案（固定寬度避免抖動）
@@ -818,6 +878,83 @@ export default function App() {
     };
   }, []);
 
+  // 如果顯示歌詞，則渲染歌詞頁面
+  if (showLyrics) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* 歌詞頁面標題欄 */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
+          <h1 className="text-xl font-semibold">歌詞</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowLyrics(false)}
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <X className="w-4 h-4 mr-2" />
+            返回主頁
+          </Button>
+        </div>
+        
+        {/* 歌詞內容 */}
+        <div className="h-[calc(100vh-80px)] overflow-y-auto p-6">
+          {lyricsLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-gray-400">載入歌詞中...</div>
+            </div>
+          ) : lyricsError ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-red-400">{lyricsError}</div>
+            </div>
+          ) : lyricsData ? (
+            <div className="max-w-4xl mx-auto space-y-6">
+              {/* 歌曲資訊 */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold mb-2">{lyricsData.title}</h2>
+                <p className="text-gray-400 text-lg">{lyricsData.artists.join(', ')}</p>
+                {lyricsData.source && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    歌詞來源: {lyricsData.source}
+                  </p>
+                )}
+              </div>
+
+              {/* 歌詞內容 */}
+              <div className="space-y-3">
+                {lyricsData.lines ? (
+                  // 同步歌詞（帶時間標記）
+                  lyricsData.lines.map((line, index) => (
+                    <div key={index} className="flex items-center gap-4 py-2">
+                      <span className="text-sm text-gray-500 w-20 flex-shrink-0 font-mono">
+                        {line.time}
+                      </span>
+                      <span className="text-gray-200 text-lg leading-relaxed">{line.text}</span>
+                    </div>
+                  ))
+                ) : lyricsData.lyrics ? (
+                  // 純文字歌詞
+                  lyricsData.lyrics.split('\n').map((line, index) => (
+                    <div key={index} className="text-gray-200 text-lg leading-relaxed py-1">
+                      {line}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-400 text-lg">
+                    暫無歌詞內容
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-gray-400 text-lg">暫無歌詞</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6 dark">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -949,6 +1086,18 @@ export default function App() {
                 <span className="text-sm text-gray-400 w-8">
                   {volume}
                 </span>
+                
+                {/* 歌詞按鈕 */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openLyrics}
+                  disabled={!getCurrentSong()?.videoId}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="查看歌詞"
+                >
+                  <FileText className="w-4 h-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1495,6 +1644,8 @@ export default function App() {
           </p>
         </footer>
       </div>
+
+
     {/* Top Toast */}
     {toastMsg && (
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none" style={{ paddingTop: "env(safe-area-inset-top)" }}>

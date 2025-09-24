@@ -112,11 +112,97 @@ def enqueue():
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
-@api_blueprint.route('/lyrics')
-def lyrics():
-    """獲取歌詞（可選功能）"""
-    # 這是可選功能的骨架
-    return jsonify({'lyrics': 'Lyrics feature not implemented yet'})
+@api_blueprint.route('/lyrics/<video_id>')
+def get_lyrics(video_id):
+    """獲取指定歌曲的歌詞"""
+    try:
+        # 獲取歌曲資訊
+        current_song = ytmd_service.get_current_song()
+        title = ""
+        artist = ""
+        
+        # 如果請求的是當前歌曲，使用當前歌曲資訊
+        if current_song and current_song.get('videoId') == video_id:
+            title = current_song.get('title', '')
+            artist = current_song.get('artist', '')
+        else:
+            # 否則從佇列中查找
+            queue = ytmd_service.get_queue()
+            for song in queue:
+                if song.get('videoId') == video_id:
+                    title = song.get('title', '')
+                    artist = song.get('artist', '')
+                    break
+        
+        if not title or not artist:
+            return jsonify({
+                'success': False,
+                'message': '無法獲取歌曲資訊'
+            }), 404
+        
+        # 獲取歌詞
+        lyrics_data = ytmd_service.get_lyrics(video_id, title, artist)
+        
+        if lyrics_data and (lyrics_data.get('lyrics') or lyrics_data.get('lines')):
+            return jsonify({
+                'success': True,
+                'data': lyrics_data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '未找到歌詞'
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Failed to get lyrics: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'獲取歌詞失敗: {str(e)}'
+        }), 500
+
+
+@api_blueprint.route('/current-lyrics')
+def get_current_lyrics():
+    """獲取當前播放歌曲的歌詞"""
+    try:
+        current_song = ytmd_service.get_current_song()
+        if not current_song or not current_song.get('videoId'):
+            return jsonify({
+                'success': False,
+                'message': '沒有正在播放的歌曲'
+            }), 404
+        
+        video_id = current_song['videoId']
+        title = current_song.get('title', '')
+        artist = current_song.get('artist', '')
+        
+        if not title or not artist:
+            return jsonify({
+                'success': False,
+                'message': '無法獲取歌曲資訊'
+            }), 404
+        
+        # 獲取歌詞
+        lyrics_data = ytmd_service.get_lyrics(video_id, title, artist)
+        
+        if lyrics_data and (lyrics_data.get('lyrics') or lyrics_data.get('lines')):
+            return jsonify({
+                'success': True,
+                'data': lyrics_data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '未找到歌詞'
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Failed to get current lyrics: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'獲取當前歌詞失敗: {str(e)}'
+        }), 500
 
 
 @api_blueprint.route('/instructions')
